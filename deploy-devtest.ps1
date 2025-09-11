@@ -43,9 +43,9 @@ New-Item -ItemType Directory -Path $DEPLOY_DIR -Force | Out-Null
 
 Write-Host "Created deployment directory: $DEPLOY_DIR" -ForegroundColor Green
 
-# Generate secure passwords
-$SUPERTOKENS_PASSWORD = -join ((33..126) | Get-Random -Count 32 | ForEach-Object {[char]$_})
-$APP_PASSWORD = -join ((33..126) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+# Generate secure passwords (avoiding special characters that break PostgreSQL URIs)
+$SUPERTOKENS_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+$APP_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
 
 Write-Host "Generated secure database passwords" -ForegroundColor Green
 
