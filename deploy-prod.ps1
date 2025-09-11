@@ -28,7 +28,10 @@ try {
 Write-Host "AWS authentication verified" -ForegroundColor Green
 
 # Create deployment directory
-$DEPLOY_DIR = "deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+$DEPLOY_DIR = "deployment-prod"
+if (Test-Path $DEPLOY_DIR) {
+    Remove-Item -Path $DEPLOY_DIR -Recurse -Force
+}
 New-Item -ItemType Directory -Path $DEPLOY_DIR -Force | Out-Null
 
 # Generate strong passwords

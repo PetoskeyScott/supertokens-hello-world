@@ -31,15 +31,14 @@ if ($CREATE_NEW_INSTANCE) {
 }
 
 # Get GitHub repository URL
-$GITHUB_REPO_URL = Read-Host "Enter your GitHub repository URL (e.g., https://github.com/username/supertokens-hello-world.git)"
-if (-not $GITHUB_REPO_URL) {
-    Write-Error "GitHub repository URL is required"
-    exit 1
-}
+$GITHUB_REPO_URL = "https://github.com/PetoskeyScott/supertokens-hello-world.git"
 
-# Create deployment directory with timestamp
-$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$DEPLOY_DIR = "deployment-devtest-$timestamp"
+
+# Create deployment directory (reuse existing)
+$DEPLOY_DIR = "deployment-devtest"
+if (Test-Path $DEPLOY_DIR) {
+    Remove-Item -Path $DEPLOY_DIR -Recurse -Force
+}
 New-Item -ItemType Directory -Path $DEPLOY_DIR -Force | Out-Null
 
 Write-Host "Created deployment directory: $DEPLOY_DIR" -ForegroundColor Green
@@ -62,6 +61,11 @@ FRONTEND_URL=http://PLACEHOLDER_IP:3000
 API_DOMAIN=http://PLACEHOLDER_IP:3001
 WEBSITE_DOMAIN=http://PLACEHOLDER_IP:3000
 "@
+
+Write-Host "Generated passwords:" -ForegroundColor Yellow
+Write-Host "POSTGRES_ROOT_PASSWORD: $SUPERTOKENS_PASSWORD" -ForegroundColor Cyan
+Write-Host "SUPERTOKENS_PASSWORD: $SUPERTOKENS_PASSWORD" -ForegroundColor Cyan
+Write-Host "APP_PASSWORD: $APP_PASSWORD" -ForegroundColor Cyan
 
 $envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding UTF8
 
@@ -166,7 +170,7 @@ resource "aws_eip" "supertokens_eip" {
 
 # EC2 instance
 resource "aws_instance" "main" {
-  ami           = "ami-0c02fb55956c7d316"  # Amazon Linux 2
+  ami           = "ami-0c7217cdde317cfec"  # Ubuntu 22.04 LTS
   instance_type = "t3.micro"
   key_name      = "supertokens-key"
   vpc_security_group_ids = [aws_security_group.supertokens_sg.id]
@@ -174,13 +178,13 @@ resource "aws_instance" "main" {
 
   user_data = <<-EOF
 #!/bin/bash
-yum update -y
-yum install -y docker git
+apt update -y
+apt install -y docker.io git
 
 # Start Docker service
 systemctl start docker
 systemctl enable docker
-usermod -a -G docker ec2-user
+usermod -a -G docker ubuntu
 
 # Install Docker Compose
 curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-Linux-x86_64" -o /usr/local/bin/docker-compose
@@ -188,13 +192,13 @@ chmod +x /usr/local/bin/docker-compose
 ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
 # Create application directory
-mkdir -p /home/ec2-user/supertokens-hello-world
-chown ec2-user:ec2-user /home/ec2-user/supertokens-hello-world
+mkdir -p /home/ubuntu/supertokens-hello-world
+chown ubuntu:ubuntu /home/ubuntu/supertokens-hello-world
 
 # Clone the repository
-cd /home/ec2-user
+cd /home/ubuntu
 git clone $GITHUB_REPO_URL
-chown -R ec2-user:ec2-user supertokens-hello-world
+chown -R ubuntu:ubuntu supertokens-hello-world
 
 # Create systemd service for auto-start
 cat > /etc/systemd/system/supertokens.service << 'EOL'
@@ -206,11 +210,11 @@ After=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/home/ec2-user/supertokens-hello-world
+WorkingDirectory=/home/ubuntu/supertokens-hello-world
 ExecStart=/usr/bin/docker-compose -f docker-compose.prod.yml up -d
 ExecStop=/usr/bin/docker-compose -f docker-compose.prod.yml down
-User=ec2-user
-Group=ec2-user
+User=ubuntu
+Group=ubuntu
 
 [Install]
 WantedBy=multi-user.target
@@ -270,7 +274,7 @@ if (`$IS_NEW_INSTANCE) {
 
 # Test SSH connection
 Write-Host "Testing SSH connection..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no -o ConnectTimeout=10 "ec2-user@`${EC2_PUBLIC_IP}" "echo 'SSH connection successful'"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no -o ConnectTimeout=10 "ubuntu@`${EC2_PUBLIC_IP}" "echo 'SSH connection successful'"
 if (`$LASTEXITCODE -ne 0) {
     Write-Error "SSH connection failed. Please check if the instance is ready and the key is correct."
     exit 1
@@ -283,7 +287,7 @@ if (-not `$IS_NEW_INSTANCE) {
     Write-Host "Setting up repository on existing instance..." -ForegroundColor Yellow
     
     # Check if repository exists and clone/update it
-    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ec2-user@`${EC2_PUBLIC_IP}" "if [ ! -d '/home/ec2-user/supertokens-hello-world' ]; then cd /home/ec2-user && git clone $GITHUB_REPO_URL; else cd /home/ec2-user/supertokens-hello-world && git pull; fi"
+    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "if [ ! -d '/home/ubuntu/supertokens-hello-world' ]; then cd /home/ubuntu && git clone $GITHUB_REPO_URL; else cd /home/ubuntu/supertokens-hello-world && git pull; fi"
     if (`$LASTEXITCODE -eq 0) {
         Write-Host "Repository setup/updated successfully" -ForegroundColor Green
     } else {
@@ -291,7 +295,7 @@ if (-not `$IS_NEW_INSTANCE) {
     }
     
     # Ensure Docker Compose is installed
-    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ec2-user@`${EC2_PUBLIC_IP}" "which docker-compose > /dev/null || (sudo curl -L 'https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-Linux-x86_64' -o /usr/local/bin/docker-compose && sudo chmod +x /usr/local/bin/docker-compose)"
+    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "which docker-compose > /dev/null || (sudo curl -L 'https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-Linux-x86_64' -o /usr/local/bin/docker-compose && sudo chmod +x /usr/local/bin/docker-compose)"
     if (`$LASTEXITCODE -eq 0) {
         Write-Host "Docker Compose verified/installed" -ForegroundColor Green
     } else {
@@ -301,7 +305,7 @@ if (-not `$IS_NEW_INSTANCE) {
 
 # Upload environment file
 Write-Host "Uploading environment configuration..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no ".env.production" "ec2-user@`${EC2_PUBLIC_IP}:/home/ec2-user/supertokens-hello-world/.env.production"
+scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no ".env.production" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/.env.production"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Environment file uploaded successfully" -ForegroundColor Green
 } else {
@@ -310,7 +314,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Upload Docker Compose file
 Write-Host "Uploading Docker Compose configuration..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../docker-compose.dev.yml" "ec2-user@`${EC2_PUBLIC_IP}:/home/ec2-user/supertokens-hello-world/docker-compose.prod.yml"
+scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../docker-compose.dev.yml" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/docker-compose.prod.yml"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Docker Compose file uploaded successfully" -ForegroundColor Green
 } else {
@@ -319,7 +323,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Upload init-db.sql file
 Write-Host "Uploading database initialization file..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../init-db.sql" "ec2-user@`${EC2_PUBLIC_IP}:/home/ec2-user/supertokens-hello-world/init-db.sql"
+scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../init-db.sql" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/init-db.sql"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Database initialization file uploaded successfully" -ForegroundColor Green
 } else {
@@ -328,7 +332,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Update environment file with actual IP
 Write-Host "Updating environment file with actual IP..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ec2-user@`${EC2_PUBLIC_IP}" "cd /home/ec2-user/supertokens-hello-world && sed -i 's/PLACEHOLDER_IP/`${EC2_PUBLIC_IP}/g' .env.production"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && sed -i 's/PLACEHOLDER_IP/`${EC2_PUBLIC_IP}/g' .env.production"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Environment file updated successfully" -ForegroundColor Green
 } else {
@@ -337,7 +341,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Stop existing services before restarting
 Write-Host "Stopping existing services..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ec2-user@`${EC2_PUBLIC_IP}" "cd /home/ec2-user/supertokens-hello-world && docker-compose -f docker-compose.prod.yml down 2>/dev/null || true"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.prod.yml down 2>/dev/null || true"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Existing services stopped" -ForegroundColor Green
 } else {
@@ -346,7 +350,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Restart services on EC2 instance
 Write-Host "Starting services on EC2 instance..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ec2-user@`${EC2_PUBLIC_IP}" "cd /home/ec2-user/supertokens-hello-world && docker-compose -f docker-compose.prod.yml down && docker-compose -f docker-compose.prod.yml up -d"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.prod.yml down && docker-compose -f docker-compose.prod.yml up -d"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Services restarted successfully" -ForegroundColor Green
 } else {
