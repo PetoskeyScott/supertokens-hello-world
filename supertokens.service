@@ -1,0 +1,17 @@
+[Unit]
+Description=SuperTokens Hello World Application
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/ec2-user/supertokens-hello-world
+ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml up -d
+ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml down
+ExecReload=/usr/local/bin/docker-compose -f docker-compose.prod.yml restart
+User=ec2-user
+Group=ec2-user
+
+[Install]
+WantedBy=multi-user.target

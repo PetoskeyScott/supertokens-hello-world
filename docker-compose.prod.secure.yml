@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Single PostgreSQL instance with two databases
+  postgres:
+    image: postgres:15
+    container_name: postgres-main
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_root_password
+      POSTGRES_USER: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - supertokens-network
+    secrets:
+      - postgres_root_password
+      - supertokens_user_password
+      - app_user_password
+
+  # SuperTokens core
+  supertokens-core:
+    image: registry.supertokens.io/supertokens/supertokens-postgresql
+    container_name: supertokens-core
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_CONNECTION_URI: postgresql://supertokens_user:${SUPERTOKENS_PASSWORD}@postgres:5432/supertokens
+    ports:
+      - "3567:3567"
+    depends_on:
+      - postgres
+    networks:
+      - supertokens-network
+    secrets:
+      - supertokens_user_password
+
+  # Backend application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supertokens-backend
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      SUPERTOKENS_CONNECTION_URI: http://supertokens-core:3567
+      DATABASE_URL: postgresql://app_user:${APP_PASSWORD}@postgres:5432/supertokens_hello_world?schema=supertokenapp
+      FRONTEND_URL: ${FRONTEND_URL}
+      API_DOMAIN: ${API_DOMAIN}
+      WEBSITE_DOMAIN: ${WEBSITE_DOMAIN}
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - supertokens-core
+    networks:
+      - supertokens-network
+    secrets:
+      - app_user_password
+
+volumes:
+  postgres-data:
+
+networks:
+  supertokens-network:
+    driver: bridge
+
+# Docker Secrets (for Swarm mode)
+secrets:
+  postgres_root_password:
+    file: .secrets/postgres_root
+  supertokens_user_password:
+    file: .secrets/supertokens_user
+  app_user_password:
+    file: .secrets/app_user
