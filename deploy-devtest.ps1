@@ -171,7 +171,7 @@ resource "aws_eip" "supertokens_eip" {
 # EC2 instance
 resource "aws_instance" "main" {
   ami           = "ami-0c7217cdde317cfec"  # Ubuntu 22.04 LTS
-  instance_type = "t3.micro"
+  instance_type = "t3.small"
   key_name      = "supertokens-key"
   vpc_security_group_ids = [aws_security_group.supertokens_sg.id]
   subnet_id     = data.aws_subnets.default.ids[0]

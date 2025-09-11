@@ -244,7 +244,7 @@ resource "aws_eip" "main" {
 # EC2 Instance
 resource "aws_instance" "main" {
   ami                    = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 (change for your region)
-  instance_type          = "t3.micro"
+  instance_type          = "t3.small"
   key_name               = "supertokens-key"  # You'll need to create this key pair
   vpc_security_group_ids = [aws_security_group.main.id]
   subnet_id              = data.aws_subnet.default.id
