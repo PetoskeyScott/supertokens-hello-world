@@ -504,7 +504,7 @@ if (`$LASTEXITCODE -ne 0) {
 
 # Update environment file with actual IP
 Write-Host "Updating environment file with actual IP address..." -ForegroundColor Yellow
-`$envFile = ".env.production"
+`$envFile = ".env"
 Write-Host "Looking for environment file: `$envFile" -ForegroundColor Yellow
 Write-Host "Current directory: `$(Get-Location)" -ForegroundColor Yellow
 Write-Host "Files in current directory:" -ForegroundColor Yellow
@@ -519,7 +519,7 @@ if (Test-Path `$envFile) {
     Write-Host "Uploading application files to EC2 instance..." -ForegroundColor Yellow
     
     # Upload environment file
-    scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no `$envFile "ec2-user@`${PUBLIC_IP}:/home/ec2-user/supertokens-hello-world/.env.production"
+    scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no `$envFile "ec2-user@`${PUBLIC_IP}:/home/ec2-user/supertokens-hello-world/.env"
     if (`$LASTEXITCODE -eq 0) {
         Write-Host "Environment file uploaded successfully" -ForegroundColor Green
         
@@ -543,7 +543,7 @@ if (Test-Path `$envFile) {
         
         # Update Docker registry in environment file on EC2
         Write-Host "Updating Docker registry configuration on EC2..." -ForegroundColor Yellow
-        ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ec2-user@`${PUBLIC_IP}" "cd /home/ec2-user/supertokens-hello-world && sed -i 's/your-dockerhub-username/$DOCKER_USERNAME/g' .env.production"
+        ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ec2-user@`${PUBLIC_IP}" "cd /home/ec2-user/supertokens-hello-world && sed -i 's/your-dockerhub-username/$DOCKER_USERNAME/g' .env"
         if (`$LASTEXITCODE -eq 0) {
             Write-Host "Docker registry configuration updated successfully" -ForegroundColor Green
         } else {
@@ -609,7 +609,7 @@ Write-Host ""
 Write-Host "Deployment package created in: $DEPLOY_DIR" -ForegroundColor Green
 Write-Host ""
 Write-Host "Files created:" -ForegroundColor Cyan
-Write-Host "   - .env.production (production environment variables)" -ForegroundColor White
+Write-Host "   - .env (production environment variables)" -ForegroundColor White
 Write-Host "   - main.tf (Terraform infrastructure configuration)" -ForegroundColor White
 Write-Host "   - DEPLOYMENT_INSTRUCTIONS.md (detailed deployment guide)" -ForegroundColor White
 Write-Host "   - quick-deploy.ps1 (one-command deployment)" -ForegroundColor White

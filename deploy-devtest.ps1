@@ -305,7 +305,7 @@ if (-not `$IS_NEW_INSTANCE) {
 
 # Upload environment file
 Write-Host "Uploading environment configuration..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no ".env.production" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/.env.production"
+scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no ".env.production" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/.env"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Environment file uploaded successfully" -ForegroundColor Green
 } else {
@@ -332,7 +332,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Update environment file with actual IP
 Write-Host "Updating environment file with actual IP..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && sed -i 's/PLACEHOLDER_IP/`${EC2_PUBLIC_IP}/g' .env.production"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && sed -i 's/PLACEHOLDER_IP/`${EC2_PUBLIC_IP}/g' .env"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Environment file updated successfully" -ForegroundColor Green
 } else {
