@@ -71,6 +71,7 @@ $envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding UTF8
 
 Write-Host "Created production environment file" -ForegroundColor Green
 
+
 # Only create Terraform configuration if creating new instance
 if ($CREATE_NEW_INSTANCE) {
     # Create Terraform configuration
@@ -211,8 +212,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/home/ubuntu/supertokens-hello-world
-ExecStart=/usr/bin/docker-compose -f docker-compose.prod.yml up -d
-ExecStop=/usr/bin/docker-compose -f docker-compose.prod.yml down
+ExecStart=/usr/bin/docker-compose -f docker-compose.dev.yml up -d
+ExecStop=/usr/bin/docker-compose -f docker-compose.dev.yml down
 User=ubuntu
 Group=ubuntu
 
@@ -314,16 +315,23 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Upload Docker Compose file
 Write-Host "Uploading Docker Compose configuration..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../docker-compose.dev.yml" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/docker-compose.prod.yml"
+scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../docker-compose.dev.yml" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/docker-compose.dev.yml"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Docker Compose file uploaded successfully" -ForegroundColor Green
 } else {
     Write-Host "Warning: Failed to upload Docker Compose file" -ForegroundColor Yellow
 }
 
+# Create init-db.sql with actual passwords
+Write-Host "Creating database initialization file with actual passwords..." -ForegroundColor Yellow
+$initDbContent = Get-Content "../init-db.sql" -Raw
+$initDbContent = $initDbContent -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", $SUPERTOKENS_PASSWORD
+$initDbContent = $initDbContent -replace "PLACEHOLDER_APP_PASSWORD", $APP_PASSWORD
+$initDbContent | Out-File -FilePath "$DEPLOY_DIR\init-db.sql" -Encoding UTF8
+
 # Upload init-db.sql file
 Write-Host "Uploading database initialization file..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../init-db.sql" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/init-db.sql"
+scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "$DEPLOY_DIR\init-db.sql" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/init-db.sql"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Database initialization file uploaded successfully" -ForegroundColor Green
 } else {
@@ -341,7 +349,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Stop existing services before restarting
 Write-Host "Stopping existing services..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.prod.yml down 2>/dev/null || true"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.dev.yml down 2>/dev/null || true"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Existing services stopped" -ForegroundColor Green
 } else {
@@ -350,7 +358,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Restart services on EC2 instance
 Write-Host "Starting services on EC2 instance..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.prod.yml down && docker-compose -f docker-compose.prod.yml up -d"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up -d"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Services restarted successfully" -ForegroundColor Green
 } else {
