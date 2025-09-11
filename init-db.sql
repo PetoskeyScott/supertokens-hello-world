@@ -15,6 +15,11 @@ GRANT ALL PRIVILEGES ON DATABASE supertokens_hello_world TO app_user;
 \c supertokens;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Grant permissions to supertokens_user for the supertokens database
+GRANT ALL ON SCHEMA public TO supertokens_user;
+GRANT CREATE ON SCHEMA public TO supertokens_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO supertokens_user;
+
 -- Connect to application database and set up extensions
 \c supertokens_hello_world;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
