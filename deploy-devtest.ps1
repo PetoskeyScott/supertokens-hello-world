@@ -313,30 +313,11 @@ if (`$LASTEXITCODE -eq 0) {
     Write-Host "Warning: Failed to upload environment file" -ForegroundColor Yellow
 }
 
-# Upload Docker Compose file
-Write-Host "Uploading Docker Compose configuration..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../docker-compose.dev.yml" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/docker-compose.dev.yml"
-if (`$LASTEXITCODE -eq 0) {
-    Write-Host "Docker Compose file uploaded successfully" -ForegroundColor Green
-} else {
-    Write-Host "Warning: Failed to upload Docker Compose file" -ForegroundColor Yellow
-}
+# Docker Compose file comes from git pull, no need to upload
+Write-Host "Docker Compose file will be used from git repository" -ForegroundColor Green
 
-# Create init-db.sql with actual passwords
-Write-Host "Creating database initialization file with actual passwords..." -ForegroundColor Yellow
-$initDbContent = Get-Content "../init-db.sql" -Raw
-$initDbContent = $initDbContent -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", $SUPERTOKENS_PASSWORD
-$initDbContent = $initDbContent -replace "PLACEHOLDER_APP_PASSWORD", $APP_PASSWORD
-$initDbContent | Out-File -FilePath "$DEPLOY_DIR\init-db.sql" -Encoding UTF8
-
-# Upload init-db.sql file
-Write-Host "Uploading database initialization file..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "$DEPLOY_DIR\init-db.sql" "ubuntu@`${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/init-db.sql"
-if (`$LASTEXITCODE -eq 0) {
-    Write-Host "Database initialization file uploaded successfully" -ForegroundColor Green
-} else {
-    Write-Host "Warning: Failed to upload database initialization file" -ForegroundColor Yellow
-}
+# Database initialization files come from git pull, no need to upload
+Write-Host "Database initialization files will be used from git repository" -ForegroundColor Green
 
 # Update environment file with actual IP
 Write-Host "Updating environment file with actual IP..." -ForegroundColor Yellow

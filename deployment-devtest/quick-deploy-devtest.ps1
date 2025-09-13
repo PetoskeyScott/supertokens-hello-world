@@ -38,7 +38,7 @@ if (-not $IS_NEW_INSTANCE) {
     Write-Host "Setting up repository on existing instance..." -ForegroundColor Yellow
     
     # Check if repository exists and clone/update it
-    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "if [ ! -d '/home/ubuntu/supertokens-hello-world' ]; then cd /home/ubuntu && git clone https://github.com/PetoskeyScott/supertokens-hello-world.git; else cd /home/ubuntu/supertokens-hello-world && git stash && git pull; fi"
+    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "if [ ! -d '/home/ubuntu/supertokens-hello-world' ]; then cd /home/ubuntu && git clone https://github.com/PetoskeyScott/supertokens-hello-world.git; else cd /home/ubuntu/supertokens-hello-world && git pull; fi"
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Repository setup/updated successfully" -ForegroundColor Green
     } else {
@@ -63,20 +63,14 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Warning: Failed to upload environment file" -ForegroundColor Yellow
 }
 
-# Upload Docker Compose file
-Write-Host "Uploading Docker Compose configuration..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "../docker-compose.dev.yml" "ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/docker-compose.dev.yml"
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Docker Compose file uploaded successfully" -ForegroundColor Green
-} else {
-    Write-Host "Warning: Failed to upload Docker Compose file" -ForegroundColor Yellow
-}
+# Docker Compose file comes from git pull, no need to upload
+Write-Host "Docker Compose file will be used from git repository" -ForegroundColor Green
 
 # Create init-db.sql with actual passwords
 Write-Host "Creating database initialization file with actual passwords..." -ForegroundColor Yellow
  = Get-Content "../init-db.sql" -Raw
- =  -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", wAEznouXQjxtmHks5vgBGIT9FORqlPWK
- =  -replace "PLACEHOLDER_APP_PASSWORD", JCZTjvVUe6ingtr9GuQE8Yw3PNqIzXlf
+ =  -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", KOSiAIbops31aN60QC8jXMJfGeLEcwh7
+ =  -replace "PLACEHOLDER_APP_PASSWORD", 7cxPUZgWtaM9hm2FOv4nCuSKeo5RjbyV
  | Out-File -FilePath "deployment-devtest\init-db.sql" -Encoding UTF8
 
 # Upload init-db.sql file
