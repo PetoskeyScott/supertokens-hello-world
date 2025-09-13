@@ -38,7 +38,7 @@ if (-not $IS_NEW_INSTANCE) {
     Write-Host "Setting up repository on existing instance..." -ForegroundColor Yellow
     
     # Check if repository exists and clone/update it
-    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "if [ ! -d '/home/ubuntu/supertokens-hello-world' ]; then cd /home/ubuntu && git clone https://github.com/PetoskeyScott/supertokens-hello-world.git; else cd /home/ubuntu/supertokens-hello-world && git pull; fi"
+    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "if [ ! -d '/home/ubuntu/supertokens-hello-world' ]; then cd /home/ubuntu && git clone https://github.com/PetoskeyScott/supertokens-hello-world.git; else cd /home/ubuntu/supertokens-hello-world && git stash && git pull; fi"
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Repository setup/updated successfully" -ForegroundColor Green
     } else {
@@ -75,8 +75,8 @@ if ($LASTEXITCODE -eq 0) {
 # Create init-db.sql with actual passwords
 Write-Host "Creating database initialization file with actual passwords..." -ForegroundColor Yellow
  = Get-Content "../init-db.sql" -Raw
- =  -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", 3BZVsQ7Le6GcoHybXMn04U5OESP1vkfp
- =  -replace "PLACEHOLDER_APP_PASSWORD", 7yBg1HDQL60zNJ5VTaWqPESCOFlep8IA
+ =  -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", wAEznouXQjxtmHks5vgBGIT9FORqlPWK
+ =  -replace "PLACEHOLDER_APP_PASSWORD", JCZTjvVUe6ingtr9GuQE8Yw3PNqIzXlf
  | Out-File -FilePath "deployment-devtest\init-db.sql" -Encoding UTF8
 
 # Upload init-db.sql file
