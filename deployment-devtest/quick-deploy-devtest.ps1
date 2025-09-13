@@ -66,21 +66,8 @@ if ($LASTEXITCODE -eq 0) {
 # Docker Compose file comes from git pull, no need to upload
 Write-Host "Docker Compose file will be used from git repository" -ForegroundColor Green
 
-# Create init-db.sql with actual passwords
-Write-Host "Creating database initialization file with actual passwords..." -ForegroundColor Yellow
- = Get-Content "../init-db.sql" -Raw
- =  -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", KOSiAIbops31aN60QC8jXMJfGeLEcwh7
- =  -replace "PLACEHOLDER_APP_PASSWORD", 7cxPUZgWtaM9hm2FOv4nCuSKeo5RjbyV
- | Out-File -FilePath "deployment-devtest\init-db.sql" -Encoding UTF8
-
-# Upload init-db.sql file
-Write-Host "Uploading database initialization file..." -ForegroundColor Yellow
-scp -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "deployment-devtest\init-db.sql" "ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/supertokens-hello-world/init-db.sql"
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Database initialization file uploaded successfully" -ForegroundColor Green
-} else {
-    Write-Host "Warning: Failed to upload database initialization file" -ForegroundColor Yellow
-}
+# Database initialization files come from git pull, no need to upload
+Write-Host "Database initialization files will be used from git repository" -ForegroundColor Green
 
 # Update environment file with actual IP
 Write-Host "Updating environment file with actual IP..." -ForegroundColor Yellow
