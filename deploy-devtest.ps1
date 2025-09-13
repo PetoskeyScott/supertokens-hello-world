@@ -288,7 +288,7 @@ if (-not `$IS_NEW_INSTANCE) {
     Write-Host "Setting up repository on existing instance..." -ForegroundColor Yellow
     
     # Check if repository exists and clone/update it
-    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "if [ ! -d '/home/ubuntu/supertokens-hello-world' ]; then cd /home/ubuntu && git clone $GITHUB_REPO_URL; else cd /home/ubuntu/supertokens-hello-world && git pull; fi"
+    ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "if [ ! -d '/home/ubuntu/supertokens-hello-world' ]; then cd /home/ubuntu && git clone $GITHUB_REPO_URL; else cd /home/ubuntu/supertokens-hello-world && git stash && git pull; fi"
     if (`$LASTEXITCODE -eq 0) {
         Write-Host "Repository setup/updated successfully" -ForegroundColor Green
     } else {
