@@ -3,6 +3,14 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
+# Accept build arguments
+ARG REACT_APP_API_DOMAIN
+ARG REACT_APP_WEBSITE_DOMAIN
+
+# Set environment variables for build
+ENV REACT_APP_API_DOMAIN=$REACT_APP_API_DOMAIN
+ENV REACT_APP_WEBSITE_DOMAIN=$REACT_APP_WEBSITE_DOMAIN
+
 # Copy package files
 COPY package*.json ./
 

@@ -5,8 +5,8 @@ import { EmailPasswordPreBuiltUI } from "supertokens-auth-react/recipe/emailpass
 export const SuperTokensConfig = {
     appInfo: {
         appName: "SuperTokens Hello World",
-        apiDomain: "http://localhost:3001",
-        websiteDomain: "http://localhost:3000",
+        apiDomain: process.env.REACT_APP_API_DOMAIN || "http://localhost:3001",
+        websiteDomain: process.env.REACT_APP_WEBSITE_DOMAIN || "http://localhost:3000",
     },
     recipeList: [
         EmailPassword.init({
