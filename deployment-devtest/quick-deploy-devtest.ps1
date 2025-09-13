@@ -75,8 +75,8 @@ if ($LASTEXITCODE -eq 0) {
 # Create init-db.sql with actual passwords
 Write-Host "Creating database initialization file with actual passwords..." -ForegroundColor Yellow
  = Get-Content "../init-db.sql" -Raw
- =  -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", 3qiAfO2FXnRhYwIgu7o6LQxbVEkCzS0W
- =  -replace "PLACEHOLDER_APP_PASSWORD", kDOUcRqKeF49a7TJYVxslv20WBPNg38u
+ =  -replace "PLACEHOLDER_SUPERTOKENS_PASSWORD", 3BZVsQ7Le6GcoHybXMn04U5OESP1vkfp
+ =  -replace "PLACEHOLDER_APP_PASSWORD", 7yBg1HDQL60zNJ5VTaWqPESCOFlep8IA
  | Out-File -FilePath "deployment-devtest\init-db.sql" -Encoding UTF8
 
 # Upload init-db.sql file
