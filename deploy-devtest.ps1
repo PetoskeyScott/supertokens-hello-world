@@ -60,12 +60,14 @@ APP_PASSWORD=$APP_PASSWORD
 FRONTEND_URL=http://PLACEHOLDER_IP:3000
 API_DOMAIN=http://PLACEHOLDER_IP:3001
 WEBSITE_DOMAIN=http://PLACEHOLDER_IP:3000
+SUPERTOKENS_CONNECTION_URI=http://supertokens-core:3567
 "@
 
 Write-Host "Generated passwords:" -ForegroundColor Yellow
 Write-Host "POSTGRES_ROOT_PASSWORD: $SUPERTOKENS_PASSWORD" -ForegroundColor Cyan
 Write-Host "SUPERTOKENS_PASSWORD: $SUPERTOKENS_PASSWORD" -ForegroundColor Cyan
 Write-Host "APP_PASSWORD: $APP_PASSWORD" -ForegroundColor Cyan
+Write-Host "SUPERTOKENS_CONNECTION_URI: $SUPERTOKENS_CONNECTION_URI" -ForegroundColor Cyan
 
 $envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding UTF8
 
@@ -347,9 +349,9 @@ if (`$LASTEXITCODE -eq 0) {
 }
 
 Write-Host "Development/testing deployment completed!" -ForegroundColor Green
-Write-Host "Frontend: http://`$EC2_PUBLIC_IP:3000" -ForegroundColor Cyan
-Write-Host "Backend API: http://`$EC2_PUBLIC_IP:3001" -ForegroundColor Cyan
-Write-Host "SuperTokens Core: http://`$EC2_PUBLIC_IP:3567" -ForegroundColor Cyan
+Write-Host "Frontend: http://`${EC2_PUBLIC_IP}:3000" -ForegroundColor Cyan
+Write-Host "Backend API: http://`${EC2_PUBLIC_IP}:3001" -ForegroundColor Cyan
+Write-Host "SuperTokens Core: http://`${EC2_PUBLIC_IP}:3567" -ForegroundColor Cyan
 "@
 
 $quickDeployContent | Out-File -FilePath "$DEPLOY_DIR\quick-deploy-devtest.ps1" -Encoding UTF8
