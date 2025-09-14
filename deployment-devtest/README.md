@@ -24,7 +24,8 @@ This deployment is optimized for fast iteration during development.
 ## Usage:
 1. **New instance**: .\deploy-devtest.ps1 0.0.0.0
 2. **Existing instance**: .\deploy-devtest.ps1 1.2.3.4
-3. Wait for deployment to complete
+3. **Then run**: cd deployment-devtest and follow the instructions
+4. Wait for deployment to complete
 
 ## Files included:
 - .env.production - Environment variables
