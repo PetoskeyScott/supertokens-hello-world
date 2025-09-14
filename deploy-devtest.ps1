@@ -384,7 +384,8 @@ This deployment is optimized for fast iteration during development.
 ## Usage:
 1. **New instance**: `.\deploy-devtest.ps1 0.0.0.0`
 2. **Existing instance**: `.\deploy-devtest.ps1 1.2.3.4`
-3. Wait for deployment to complete
+3. **Then run**: `cd deployment-devtest` and follow the instructions
+4. Wait for deployment to complete
 
 ## Files included:
 - `.env.production` - Environment variables
@@ -405,12 +406,10 @@ Write-Host "Development/testing deployment package created in: $DEPLOY_DIR" -For
 Write-Host "Next steps:" -ForegroundColor Yellow
 
 if ($CREATE_NEW_INSTANCE) {
-    Write-Host "1. cd $DEPLOY_DIR" -ForegroundColor White
-    Write-Host "2. terraform init" -ForegroundColor White
-    Write-Host "3. terraform apply" -ForegroundColor White
-    Write-Host "4. .\quick-deploy-devtest.ps1 0.0.0.0 `"$GITHUB_REPO_URL`"" -ForegroundColor White
+    Write-Host "1. terraform init" -ForegroundColor White
+    Write-Host "2. terraform apply" -ForegroundColor White
+    Write-Host "3. .\quick-deploy-devtest.ps1 0.0.0.0 `"$GITHUB_REPO_URL`"" -ForegroundColor White
 } else {
-    Write-Host "1. cd $DEPLOY_DIR" -ForegroundColor White
-    Write-Host "2. .\quick-deploy-devtest.ps1 $EC2_PUBLIC_IP `"$GITHUB_REPO_URL`"" -ForegroundColor White
+    Write-Host "1. .\quick-deploy-devtest.ps1 $EC2_PUBLIC_IP `"$GITHUB_REPO_URL`"" -ForegroundColor White
     Write-Host "   (No Terraform needed - using existing instance)" -ForegroundColor Cyan
 }

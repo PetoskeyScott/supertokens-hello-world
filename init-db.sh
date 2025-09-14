@@ -2,19 +2,45 @@
 set -e
 
 # PostgreSQL initialization script for SuperTokens Hello World
-# This script runs when the PostgreSQL container starts for the first time
+# This script is idempotent and safe to run multiple times
 
-# Create SuperTokens database and user
+# Create SuperTokens database and user (if they don't exist)
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE DATABASE supertokens;
-    CREATE USER supertokens_user WITH PASSWORD '$SUPERTOKENS_PASSWORD';
+    -- Create database if it doesn't exist
+    SELECT 'CREATE DATABASE supertokens'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'supertokens')\gexec
+    
+    -- Create user if it doesn't exist, otherwise update password
+    DO \$\$
+    BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'supertokens_user') THEN
+            CREATE USER supertokens_user WITH PASSWORD '$SUPERTOKENS_PASSWORD';
+        ELSE
+            ALTER USER supertokens_user WITH PASSWORD '$SUPERTOKENS_PASSWORD';
+        END IF;
+    END
+    \$\$;
+    
     GRANT ALL PRIVILEGES ON DATABASE supertokens TO supertokens_user;
 EOSQL
 
-# Create application database and user
+# Create application database and user (if they don't exist)
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE DATABASE supertokens_hello_world;
-    CREATE USER app_user WITH PASSWORD '$APP_PASSWORD';
+    -- Create database if it doesn't exist
+    SELECT 'CREATE DATABASE supertokens_hello_world'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'supertokens_hello_world')\gexec
+    
+    -- Create user if it doesn't exist, otherwise update password
+    DO \$\$
+    BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_user') THEN
+            CREATE USER app_user WITH PASSWORD '$APP_PASSWORD';
+        ELSE
+            ALTER USER app_user WITH PASSWORD '$APP_PASSWORD';
+        END IF;
+    END
+    \$\$;
+    
     GRANT ALL PRIVILEGES ON DATABASE supertokens_hello_world TO app_user;
 EOSQL
 
