@@ -54,6 +54,7 @@ DOCKER_REGISTRY=your-dockerhub-username
 FRONTEND_URL=http://PLACEHOLDER_IP:3000
 API_DOMAIN=http://PLACEHOLDER_IP:3001
 WEBSITE_DOMAIN=http://PLACEHOLDER_IP:3000
+SUPERTOKENS_CONNECTION_URI=http://supertokens-core:3567
 "@
 
 $envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding UTF8

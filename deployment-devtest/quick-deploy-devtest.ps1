@@ -97,6 +97,6 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 Write-Host "Development/testing deployment completed!" -ForegroundColor Green
-Write-Host "Frontend: http://$EC2_PUBLIC_IP:3000" -ForegroundColor Cyan
-Write-Host "Backend API: http://$EC2_PUBLIC_IP:3001" -ForegroundColor Cyan
-Write-Host "SuperTokens Core: http://$EC2_PUBLIC_IP:3567" -ForegroundColor Cyan
+Write-Host "Frontend: http://${EC2_PUBLIC_IP}:3000" -ForegroundColor Cyan
+Write-Host "Backend API: http://${EC2_PUBLIC_IP}:3001" -ForegroundColor Cyan
+Write-Host "SuperTokens Core: http://${EC2_PUBLIC_IP}:3567" -ForegroundColor Cyan

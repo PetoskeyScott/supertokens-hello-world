@@ -20,6 +20,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+RUN echo "REACT_APP_API_DOMAIN=$REACT_APP_API_DOMAIN" && \
+    echo "REACT_APP_WEBSITE_DOMAIN=$REACT_APP_WEBSITE_DOMAIN"
+
 # Build the application
 RUN npm run build
 
