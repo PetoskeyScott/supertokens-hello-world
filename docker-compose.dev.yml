@@ -48,7 +48,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 3001
-      SUPERTOKENS_CONNECTION_URI: http://supertokens-core:3567
+      SUPERTOKENS_CONNECTION_URI: ${SUPERTOKENS_CONNECTION_URI}
       DATABASE_URL: postgresql://app_user:${APP_PASSWORD}@postgres:5432/supertokens_hello_world?schema=supertokenapp
       FRONTEND_URL: ${FRONTEND_URL}
       API_DOMAIN: ${API_DOMAIN}
