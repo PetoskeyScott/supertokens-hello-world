@@ -42,7 +42,7 @@ export const SuperTokensConfig = {
                 // IMPORTANT:
                 // In a production build served by nginx, "/api" won't proxy unless you add an nginx gateway.
                 // Since you're exposing the backend on :3001 directly, call it via the absolute API domain:
-                await fetch(`${API_DOMAIN.replace(/\/$/, "")}/account`, {
+                await fetch(`${API_DOMAIN.replace(/\/$/, "")}/api/account`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ name: accountName }),
