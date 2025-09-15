@@ -44,7 +44,6 @@ services:
       dockerfile: Dockerfile
       args:
         BUILDKIT_INLINE_CACHE: 0
-    no_cache: true
     container_name: supertokens-backend
     restart: unless-stopped
     environment:
