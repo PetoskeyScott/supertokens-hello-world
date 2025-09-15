@@ -214,7 +214,7 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/home/ubuntu/supertokens-hello-world
-ExecStart=/usr/bin/docker-compose -f docker-compose.dev.yml up -d --force-recreate --no-cache
+ExecStart=/usr/bin/docker-compose -f docker-compose.dev.yml up -d --force-recreate
 ExecStop=/usr/bin/docker-compose -f docker-compose.dev.yml down
 User=ubuntu
 Group=ubuntu
@@ -341,7 +341,7 @@ if (`$LASTEXITCODE -eq 0) {
 
 # Restart services on EC2 instance
 Write-Host "Starting services on EC2 instance..." -ForegroundColor Yellow
-ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up -d --force-recreate --no-cache"
+ssh -i "../supertokens-key.pem" -o StrictHostKeyChecking=no "ubuntu@`${EC2_PUBLIC_IP}" "cd /home/ubuntu/supertokens-hello-world && docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up -d --force-recreate"
 if (`$LASTEXITCODE -eq 0) {
     Write-Host "Services restarted successfully" -ForegroundColor Green
 } else {
