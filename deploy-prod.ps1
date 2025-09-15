@@ -89,7 +89,7 @@ $envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding UTF8
 
 # Build backend image
 Write-Host "Building backend Docker image..." -ForegroundColor Yellow
-docker build -t "$DOCKER_USERNAME/supertokens-backend:latest" ./backend
+docker build --no-cache -t "$DOCKER_USERNAME/supertokens-backend:latest" ./backend
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to build backend Docker image"
     exit 1
@@ -97,7 +97,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # Build frontend image
 Write-Host "Building frontend Docker image..." -ForegroundColor Yellow
-docker build -t "$DOCKER_USERNAME/supertokens-frontend:latest" ./frontend
+docker build --no-cache -t "$DOCKER_USERNAME/supertokens-frontend:latest" ./frontend
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to build frontend Docker image"
     exit 1

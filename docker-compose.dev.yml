@@ -44,6 +44,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 0
+    no_cache: true
     container_name: supertokens-backend
     restart: unless-stopped
     environment:
@@ -71,6 +74,8 @@ services:
       args:
         REACT_APP_API_DOMAIN: ${API_DOMAIN}
         REACT_APP_WEBSITE_DOMAIN: ${WEBSITE_DOMAIN}
+        BUILDKIT_INLINE_CACHE: 0
+    no_cache: true
     container_name: supertokens-frontend
     restart: unless-stopped
     ports:
