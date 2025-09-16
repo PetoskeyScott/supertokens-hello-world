@@ -12,15 +12,26 @@ function req(name: "REACT_APP_API_DOMAIN" | "REACT_APP_WEBSITE_DOMAIN"): string 
   return v;
 }
 
-const API_DOMAIN = req("REACT_APP_API_DOMAIN");
-const WEBSITE_DOMAIN = req("REACT_APP_WEBSITE_DOMAIN");
+// API domain is still baked in at build time (from .env / compose build args)
+const API_DOMAIN: string = req("REACT_APP_API_DOMAIN");
+
+// WEBSITE domain should match whatever origin the page is currently on.
+// Use runtime origin when in the browser; fall back to env for build/test.
+const WEBSITE_DOMAIN: string = (() => {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    // window.location.origin is a string (e.g., "http://98.87.215.3:3000")
+    return window.location.origin;
+  }
+  // Fallback for non-browser contexts (tests/SSR/build-time type-check)
+  return req("REACT_APP_WEBSITE_DOMAIN");
+})();
 
 export const SuperTokensConfig = {
   appInfo: {
     appName: "SuperTokens Hello World",
-    apiDomain: API_DOMAIN,             // <- guaranteed string
-    websiteDomain: WEBSITE_DOMAIN,     // <- guaranteed string
-    // strongly recommended to set these explicitly so FE/BE match
+    apiDomain: API_DOMAIN,         // string
+    websiteDomain: WEBSITE_DOMAIN, // string, dynamic at runtime in the browser
+    // keep FE/BE aligned
     apiBasePath: "/auth",
     websiteBasePath: "/auth",
   },
@@ -39,9 +50,7 @@ export const SuperTokensConfig = {
 
                 const accountName = email ? email.split("@")[0] : "Default Account";
 
-                // IMPORTANT:
-                // In a production build served by nginx, "/api" won't proxy unless you add an nginx gateway.
-                // Since you're exposing the backend on :3001 directly, call it via the absolute API domain:
+                // Call backend via absolute API URL (no reverse proxy in front yet)
                 await fetch(`${API_DOMAIN.replace(/\/$/, "")}/api/account`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -57,3 +66,4 @@ export const SuperTokensConfig = {
     Session.init(),
   ],
 };
+
