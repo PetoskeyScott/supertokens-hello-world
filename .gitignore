@@ -67,3 +67,6 @@ override.tf.json
 
 # Frontend caches
 frontend/node_modules/.cache/
+
+# Deployment secrets
+deployment-passwords.json

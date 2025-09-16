@@ -43,11 +43,44 @@ New-Item -ItemType Directory -Path $DEPLOY_DIR -Force | Out-Null
 
 Write-Host "Created deployment directory: $DEPLOY_DIR" -ForegroundColor Green
 
-# Generate secure passwords (avoiding special characters that break PostgreSQL URIs)
-$SUPERTOKENS_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
-$APP_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
-
-Write-Host "Generated secure database passwords" -ForegroundColor Green
+# Get or create passwords (only generate new ones for new instances)
+if ($CREATE_NEW_INSTANCE) {
+    Write-Host "🆕 Creating new instance - generating fresh passwords" -ForegroundColor Yellow
+    # Generate secure passwords (avoiding special characters that break PostgreSQL URIs)
+    $SUPERTOKENS_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+    $APP_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+    
+    # Save passwords for future incremental deployments
+    $passwords = @{
+        POSTGRES_ROOT_PASSWORD = $SUPERTOKENS_PASSWORD
+        SUPERTOKENS_PASSWORD = $SUPERTOKENS_PASSWORD
+        APP_PASSWORD = $APP_PASSWORD
+        CREATED_DATE = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    }
+    $passwords | ConvertTo-Json | Out-File -FilePath "deployment-passwords.json" -Encoding UTF8
+    Write-Host "💾 Saved passwords for future incremental deployments" -ForegroundColor Green
+} else {
+    Write-Host "🔄 Using existing instance - retrieving saved passwords" -ForegroundColor Yellow
+    if (Test-Path "deployment-passwords.json") {
+        $savedPasswords = Get-Content "deployment-passwords.json" | ConvertFrom-Json
+        $SUPERTOKENS_PASSWORD = $savedPasswords.SUPERTOKENS_PASSWORD
+        $APP_PASSWORD = $savedPasswords.APP_PASSWORD
+        Write-Host "✅ Retrieved existing passwords (created: $($savedPasswords.CREATED_DATE))" -ForegroundColor Green
+    } else {
+        Write-Host "⚠️  No saved passwords found. Generating new ones..." -ForegroundColor Yellow
+        $SUPERTOKENS_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+        $APP_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+        
+        # Save the new passwords
+        $passwords = @{
+            POSTGRES_ROOT_PASSWORD = $SUPERTOKENS_PASSWORD
+            SUPERTOKENS_PASSWORD = $SUPERTOKENS_PASSWORD
+            APP_PASSWORD = $APP_PASSWORD
+            CREATED_DATE = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        }
+        $passwords | ConvertTo-Json | Out-File -FilePath "deployment-passwords.json" -Encoding UTF8
+    }
+}
 
 # Create production environment file
 $envContent = @"
