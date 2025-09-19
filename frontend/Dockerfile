@@ -16,6 +16,7 @@ COPY package*.json ./
 
 # Install dependencies (use install for broader compatibility in CI/build containers)
 ENV npm_config_legacy_peer_deps=true
+ENV NPM_CONFIG_LOGLEVEL=verbose
 RUN npm install --no-audit --no-fund
 
 # Copy source code
