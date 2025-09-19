@@ -1,5 +1,6 @@
 import React from 'react';
 import Session from "supertokens-auth-react/recipe/session";
+import { apiJson } from '../services/api';
 
 export function useRoles(): { roles: string[]; loading: boolean } {
   const [roles, setRoles] = React.useState<string[]>([]);
@@ -15,14 +16,11 @@ export function useRoles(): { roles: string[]; loading: boolean } {
           return;
         }
         // Fallback to API if claim is missing
-        const r = await fetch('/api/me', { credentials: 'include' });
-        if (r.ok) {
-          const j = await r.json();
-          if (Array.isArray(j.roles)) {
-            setRoles(j.roles as string[]);
-            setLoading(false);
-            return;
-          }
+        const j = await apiJson('/api/me');
+        if (Array.isArray(j.roles)) {
+          setRoles(j.roles as string[]);
+          setLoading(false);
+          return;
         }
         setRoles([]);
         setLoading(false);

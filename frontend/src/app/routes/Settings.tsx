@@ -1,15 +1,13 @@
 import React from 'react';
+import { apiJson } from '../services/api';
 
 const Settings: React.FC = () => {
   const [profile, setProfile] = React.useState<{email: string; timeJoined: number | null; roles: string[]}>({email: '', timeJoined: null, roles: []});
   React.useEffect(() => {
     (async () => {
       try {
-        const r = await fetch('/api/me', { credentials: 'include' });
-        if (r.ok) {
-          const j = await r.json();
-          setProfile({ email: j.email || '', timeJoined: j.timeJoined || null, roles: j.roles || [] });
-        }
+        const j = await apiJson('/api/me');
+        setProfile({ email: j.email || '', timeJoined: j.timeJoined || null, roles: j.roles || [] });
       } catch {}
     })();
   }, []);

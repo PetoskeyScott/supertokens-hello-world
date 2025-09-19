@@ -1,4 +1,5 @@
 import React from 'react';
+import { apiJson, apiPost, apiDelete } from '../services/api';
 
 type UserRow = { userId: string; email: string; timeJoined: number; roles: string[] };
 
@@ -13,9 +14,7 @@ const Admin: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const r = await fetch('/api/admin/users', { credentials: 'include' });
-      if (!r.ok) throw new Error('Failed');
-      const j = await r.json();
+      const j = await apiJson('/api/admin/users');
       setUsers(j.users || []);
     } catch (e: any) {
       setError(e?.message || 'Failed to load users');
@@ -29,10 +28,10 @@ const Admin: React.FC = () => {
   const toggleRole = async (userId: string, role: typeof allRoles[number], has: boolean) => {
     try {
       if (has) {
-        const r = await fetch(`/api/admin/users/${userId}/roles/${role}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
+        const r = await apiDelete(`/api/admin/users/${userId}/roles/${role}`);
         if (!r.ok) throw new Error('Failed to remove role');
       } else {
-        const r = await fetch(`/api/admin/users/${userId}/roles`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ role }) });
+        const r = await apiPost(`/api/admin/users/${userId}/roles`, { role });
         if (!r.ok) throw new Error('Failed to add role');
       }
       await load();

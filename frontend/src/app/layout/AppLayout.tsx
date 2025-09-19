@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Session from "supertokens-auth-react/recipe/session";
+import { apiJson } from '../services/api';
 import { useCanAccess } from '../hooks/useRouteGuard';
 
 function useRoles(): string[] {
@@ -34,11 +35,11 @@ function canAccess(route: string, roles: string[]): boolean {
 
 const TopNav: React.FC<{ roles: string[] }> = ({ roles }) => {
   const navItems = [
-    { to: 'home', label: 'Home' },
-    { to: 'news', label: 'News' },
-    { to: 'games', label: 'Games' },
-    { to: 'settings', label: 'Settings' },
-    { to: 'admin', label: 'Admin' },
+    { to: '/home', label: 'Home' },
+    { to: '/news', label: 'News' },
+    { to: '/games', label: 'Games' },
+    { to: '/settings', label: 'Settings' },
+    { to: '/admin', label: 'Admin' },
   ];
   return (
     <div className="app-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
@@ -57,11 +58,8 @@ const UserMenu: React.FC = () => {
   React.useEffect(() => {
     (async () => {
       try {
-        const r = await fetch('/api/me', { credentials: 'include' });
-        if (r.ok) {
-          const j = await r.json();
-          setEmail(j.email || '');
-        }
+        const j = await apiJson('/api/me');
+        setEmail(j.email || '');
       } catch {}
     })();
   }, []);
