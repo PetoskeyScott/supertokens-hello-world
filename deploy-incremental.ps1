@@ -86,6 +86,15 @@ git pull origin main
 echo "Updating environment file..."
 cp /home/ubuntu/.env.production .env
 
+echo "Checking disk space before build..."
+df -h || true
+echo "Pruning Docker cache to free space..."
+docker system prune -af || true
+docker builder prune -af || true
+docker volume prune -f || true
+echo "Disk space after prune:"
+df -h || true
+
 echo "Stopping application containers (keeping database running)..."
 docker-compose -f docker-compose.dev.yml stop backend frontend supertokens-core
 
@@ -125,10 +134,11 @@ try {
 
     Write-Host "🚀 Executing incremental deployment on EC2..." -ForegroundColor Yellow
     ssh -tt -i $KEY_PATH -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "dos2unix -q /home/ubuntu/deploy-incremental-remote.sh 2>/dev/null || sed -i 's/\r$//' /home/ubuntu/deploy-incremental-remote.sh; chmod +x /home/ubuntu/deploy-incremental-remote.sh; bash /home/ubuntu/deploy-incremental-remote.sh"
-    if ($LASTEXITCODE -ne 0) {
+${remoteExit} = $LASTEXITCODE
+if ($remoteExit -ne 0) {
         Write-Host "❌ Remote execution failed. Attempting to fetch remote logs..." -ForegroundColor Red
         ssh -i $KEY_PATH -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "ls -l /home/ubuntu/deploy-logs; tail -n 200 /home/ubuntu/deploy-logs/backend-build.log || true; tail -n 200 /home/ubuntu/deploy-logs/frontend-build.log || true" | Out-Host
-        throw "Remote execution failed with code $LASTEXITCODE"
+        throw "Remote execution failed with code $remoteExit"
     }
 
     Write-Host ""
