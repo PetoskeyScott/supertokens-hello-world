@@ -34,18 +34,17 @@ function canAccess(route: string, roles: string[]): boolean {
 
 const TopNav: React.FC<{ roles: string[] }> = ({ roles }) => {
   const navItems = [
-    { to: '/home', label: 'Home' },
-    { to: '/news', label: 'News' },
-    { to: '/games', label: 'Games' },
-    { to: '/settings', label: 'Settings' },
-    { to: '/admin', label: 'Admin' },
+    { to: 'home', label: 'Home' },
+    { to: 'news', label: 'News' },
+    { to: 'games', label: 'Games' },
+    { to: 'settings', label: 'Settings' },
+    { to: 'admin', label: 'Admin' },
   ];
-  const navigate = useNavigate();
   return (
     <div className="app-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
       <div className="stack-row" style={{ gap: 8 }}>
         {(roles.length ? navItems.filter(n => canAccess(n.to.replace('/', ''), roles)) : navItems).map((n) => (
-          <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>{n.label}</NavLink>
+          <NavLink key={n.to} to={n.to} end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>{n.label}</NavLink>
         ))}
       </div>
       <UserMenu />
