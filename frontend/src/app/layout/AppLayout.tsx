@@ -60,7 +60,9 @@ const UserMenu: React.FC = () => {
       try {
         const j = await apiJson('/api/me');
         setEmail(j.email || '');
-      } catch {}
+      } catch (e) {
+        console.warn('Failed to load /api/me', e);
+      }
     })();
   }, []);
   const onSignOut = async () => {

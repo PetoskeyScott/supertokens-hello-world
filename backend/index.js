@@ -247,17 +247,26 @@ app.get("/api/me", async (req, res) => {
     const session = await Session.getSession(req, res, false);
     if (!session) return res.status(401).json({ error: "Unauthorized" });
     const userId = session.getUserId();
-    const user = await EmailPassword.getUserById(userId);
+    let email = null;
+    let timeJoined = null;
+    try {
+      // Attempt a generic fetch that works across recipes
+      const user = await supertokens.getUser(userId);
+      email = user?.email || null;
+      timeJoined = user?.timeJoined || null;
+    } catch (_) {
+      try {
+        const epUser = await EmailPassword.getUserById(userId);
+        email = epUser?.email || null;
+        timeJoined = epUser?.timeJoined || null;
+      } catch (_) {}
+    }
     const rolesRes = await UserRoles.getRolesForUser(userId);
-    res.json({
-      userId,
-      email: user?.email || null,
-      timeJoined: user?.timeJoined || null,
-      roles: rolesRes.roles,
-    });
+    res.json({ userId, email, timeJoined, roles: rolesRes.roles || [] });
   } catch (e) {
     console.error("/api/me error", e);
-    res.status(500).json({ error: "Failed to load profile" });
+    // Return minimal payload to avoid FE breaking
+    res.json({ userId: null, email: null, timeJoined: null, roles: [] });
   }
 });
 

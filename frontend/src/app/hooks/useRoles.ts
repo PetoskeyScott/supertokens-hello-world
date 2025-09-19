@@ -9,7 +9,7 @@ export function useRoles(): { roles: string[]; loading: boolean } {
     (async () => {
       try {
         const payload: any = await Session.getAccessTokenPayloadSecurely();
-        const claim = payload?.st?.ur;
+        const claim = payload?.["st-ur"];
         if (Array.isArray(claim) && claim.length > 0) {
           setRoles(claim as string[]);
           setLoading(false);
