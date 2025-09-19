@@ -44,7 +44,7 @@ const TopNav: React.FC<{ roles: string[] }> = ({ roles }) => {
   return (
     <div className="app-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
       <div className="stack-row" style={{ gap: 8 }}>
-        {navItems.filter(n => canAccess(n.to.replace('/', ''), roles)).map((n) => (
+        {(roles.length ? navItems.filter(n => canAccess(n.to.replace('/', ''), roles)) : navItems).map((n) => (
           <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>{n.label}</NavLink>
         ))}
       </div>

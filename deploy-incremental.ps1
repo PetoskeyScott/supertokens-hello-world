@@ -61,7 +61,7 @@ WEBSITE_DOMAIN=http://${EC2_PUBLIC_IP}:3000
 SUPERTOKENS_CONNECTION_URI=http://${EC2_PUBLIC_IP}:3567
 "@
 
-$envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding UTF8
+$envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding ascii
 Write-Host "📝 Created environment file with existing passwords" -ForegroundColor Green
 
 # Create the deployment script for EC2
@@ -102,15 +102,18 @@ echo "✅ Incremental deployment completed!"
 echo "Database passwords preserved - no data loss!"
 "@
 
-$deployScript | Out-File -FilePath "$DEPLOY_DIR/deploy-incremental-remote.sh" -Encoding UTF8
+$deployScript | Out-File -FilePath "$DEPLOY_DIR/deploy-incremental-remote.sh" -Encoding ascii
 
 try {
     Write-Host "📤 Uploading deployment files to EC2..." -ForegroundColor Yellow
     scp -i $KEY_PATH -o StrictHostKeyChecking=no "$DEPLOY_DIR\.env.production" "ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/.env.production"
+    if ($LASTEXITCODE -ne 0) { throw "SCP .env.production failed with code $LASTEXITCODE" }
     scp -i $KEY_PATH -o StrictHostKeyChecking=no "$DEPLOY_DIR/deploy-incremental-remote.sh" "ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/"
+    if ($LASTEXITCODE -ne 0) { throw "SCP deploy-incremental-remote.sh failed with code $LASTEXITCODE" }
 
     Write-Host "🚀 Executing incremental deployment on EC2..." -ForegroundColor Yellow
-    ssh -i $KEY_PATH -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "chmod +x /home/ubuntu/deploy-incremental-remote.sh && /home/ubuntu/deploy-incremental-remote.sh"
+    ssh -i $KEY_PATH -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "dos2unix -q /home/ubuntu/deploy-incremental-remote.sh 2>/dev/null || sed -i 's/\r$//' /home/ubuntu/deploy-incremental-remote.sh; chmod +x /home/ubuntu/deploy-incremental-remote.sh; bash /home/ubuntu/deploy-incremental-remote.sh"
+    if ($LASTEXITCODE -ne 0) { throw "Remote execution failed with code $LASTEXITCODE" }
 
     Write-Host ""
     Write-Host "✅ Incremental deployment completed successfully!" -ForegroundColor Green
