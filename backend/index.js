@@ -49,7 +49,39 @@ try {
       websiteBasePath: "/auth",
     },
     recipeList: [
-      EmailPassword.init(),
+      EmailPassword.init({
+        override: {
+          apis: (originalImplementation) => {
+            return {
+              ...originalImplementation,
+              // Assign roles during sign up
+              async signUpPOST(input) {
+                const response = await originalImplementation.signUpPOST(input);
+                if (response.status === "OK") {
+                  try {
+                    const email = response.user.email.toLowerCase();
+                    const role = email === "scottdev@snyders602.org" ? "admin" : "user";
+                    await UserRoles.addRoleToUser(response.user.id, role);
+
+                    // If a session exists, refresh roles claim immediately
+                    try {
+                      const session = await Session.getSession(input.options.req, input.options.res, false);
+                      if (session && UserRoles.UserRoleClaim) {
+                        await session.fetchAndSetClaim(UserRoles.UserRoleClaim);
+                      }
+                    } catch (e) {
+                      console.warn("[signup] could not refresh roles claim:", e.message || e);
+                    }
+                  } catch (e) {
+                    console.error("[signup] error assigning role:", e);
+                  }
+                }
+                return response;
+              },
+            };
+          },
+        },
+      }),
       UserRoles.init(),
       Session.init({
         // Dev over HTTP + bare IP:
@@ -70,6 +102,18 @@ try {
     .then((r) => r.text())
     .then((txt) => console.log("SuperTokens core connection test successful:", txt))
     .catch((err) => console.error("SuperTokens core connection test failed:", err));
+
+  // Seed roles on boot (idempotent)
+  (async () => {
+    try {
+      await UserRoles.createNewRoleOrAddPermissions("admin", []);
+      await UserRoles.createNewRoleOrAddPermissions("user", []);
+      await UserRoles.createNewRoleOrAddPermissions("games", []);
+      console.log("Roles seeded: admin, user, games");
+    } catch (err) {
+      console.error("Error seeding roles:", err);
+    }
+  })();
 } catch (error) {
   console.error("Error initializing SuperTokens:", error);
   process.exit(1);
@@ -155,6 +199,105 @@ async function initDatabase() {
 
 // ---------- Routes ----------
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// ----- Helper: admin guard -----
+async function requireAdmin(req, res, next) {
+  try {
+    const session = await Session.getSession(req, res, false);
+    if (!session) return res.status(401).json({ error: "Unauthorized" });
+    const userId = session.getUserId();
+    const isAdmin = await UserRoles.doesUserHaveRole(userId, "admin");
+    if (!isAdmin) return res.status(403).json({ error: "Forbidden" });
+    next();
+  } catch (e) {
+    next(e);
+  }
+}
+
+// ----- Current user info -----
+app.get("/api/me", async (req, res) => {
+  try {
+    const session = await Session.getSession(req, res, false);
+    if (!session) return res.status(401).json({ error: "Unauthorized" });
+    const userId = session.getUserId();
+    const user = await EmailPassword.getUserById(userId);
+    const rolesRes = await UserRoles.getRolesForUser(userId);
+    res.json({
+      userId,
+      email: user?.email || null,
+      timeJoined: user?.timeJoined || null,
+      roles: rolesRes.roles,
+    });
+  } catch (e) {
+    console.error("/api/me error", e);
+    res.status(500).json({ error: "Failed to load profile" });
+  }
+});
+
+// ----- Admin APIs -----
+// List users (paged)
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  try {
+    const limit = 50;
+    const paginationToken = req.query.token || undefined;
+    const { users, nextPaginationToken } = await supertokens.getUserCount === undefined
+      ? await EmailPassword.listUsersByAccountInfo("ASC", limit, paginationToken)
+      : await EmailPassword.listUsersByAccountInfo("ASC", limit, paginationToken);
+
+    const data = await Promise.all(
+      users.map(async (u) => {
+        const roles = (await UserRoles.getRolesForUser(u.id)).roles;
+        return { userId: u.id, email: u.email, timeJoined: u.timeJoined, roles };
+      })
+    );
+    res.json({ users: data, nextToken: nextPaginationToken || null });
+  } catch (e) {
+    console.error("/api/admin/users error", e);
+    res.status(500).json({ error: "Failed to list users" });
+  }
+});
+
+// Add a role to a user
+app.post("/api/admin/users/:userId/roles", requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body || {};
+    if (!role || !["admin", "user", "games"].includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+    await UserRoles.addRoleToUser(userId, role);
+    // Ensure user has at least admin or user
+    const roles = (await UserRoles.getRolesForUser(userId)).roles;
+    if (!roles.includes("admin") && !roles.includes("user")) {
+      await UserRoles.addRoleToUser(userId, "user");
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("add role error", e);
+    res.status(500).json({ error: "Failed to add role" });
+  }
+});
+
+// Remove a role from a user
+app.delete("/api/admin/users/:userId/roles/:role", requireAdmin, async (req, res) => {
+  try {
+    const { userId, role } = req.params;
+    if (!role || !["admin", "user", "games"].includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+    await UserRoles.removeUserRole(userId, role);
+    // Enforce must have admin or user
+    const roles = (await UserRoles.getRolesForUser(userId)).roles;
+    if (!roles.includes("admin") && !roles.includes("user")) {
+      // Revert by adding user
+      await UserRoles.addRoleToUser(userId, "user");
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("remove role error", e);
+    res.status(500).json({ error: "Failed to remove role" });
+  }
+});
 
 app.post("/api/account", async (req, res) => {
   // In Express, pass `false` to avoid throwing on missing session:

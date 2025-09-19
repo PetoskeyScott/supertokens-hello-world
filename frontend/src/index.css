@@ -11,3 +11,34 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 } 
+
+html, body, #root {
+  height: 100%;
+}
+
+/* Basic variables for easy reskin */
+:root {
+  --nav-height: 56px;
+  --footer-height: 40px;
+  --sidebar-width: 240px;
+  --border-color: #e5e7eb;
+}
+
+.app-grid {
+  display: grid;
+  grid-template-rows: var(--nav-height) 1fr var(--footer-height);
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-areas:
+    "nav nav"
+    "sidebar content"
+    "footer footer";
+  height: 100vh;
+}
+
+.app-nav { grid-area: nav; border-bottom: 1px solid var(--border-color); }
+.app-sidebar { grid-area: sidebar; border-right: 1px solid var(--border-color); }
+.app-content { grid-area: content; overflow: auto; }
+.app-footer { grid-area: footer; border-top: 1px solid var(--border-color); }
+
+.stack-row { display: flex; align-items: center; gap: 12px; }
+.stack-col { display: flex; flex-direction: column; gap: 8px; }
