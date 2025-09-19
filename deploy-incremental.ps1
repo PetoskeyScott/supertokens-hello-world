@@ -65,12 +65,12 @@ $envContent | Out-File -FilePath "$DEPLOY_DIR\.env.production" -Encoding ascii
 Write-Host "📝 Created environment file with existing passwords" -ForegroundColor Green
 
 # Create the deployment script for EC2
-$deployScript = @"
+$deployScript = @'
 #!/bin/bash
 set -Eeuo pipefail
-trap 'echo "❌ Remote script failed at line "+$LINENO; exit 17' ERR
+trap 'echo "ERROR: remote script failed at line $LINENO"; exit 17' ERR
 
-echo "🔄 Starting incremental deployment..."
+echo "Starting incremental deployment..."
 
 # Navigate to project directory
 cd /home/ubuntu/supertokens-hello-world
@@ -80,42 +80,39 @@ mkdir -p "$LOG_DIR"
 echo "Log directory: $LOG_DIR"
 date > "$LOG_DIR/started.txt"
 
-echo "📥 Pulling latest code from GitHub..."
+echo "Pulling latest code from GitHub..."
 git pull origin main
 
-echo "📤 Updating environment file..."
+echo "Updating environment file..."
 cp /home/ubuntu/.env.production .env
 
-echo "🔧 Replacing IP placeholders..."
-sed -i 's/PLACEHOLDER_IP/$EC2_PUBLIC_IP/g' .env
-
-echo "🛑 Stopping application containers (keeping database running)..."
+echo "Stopping application containers (keeping database running)..."
 docker-compose -f docker-compose.dev.yml stop backend frontend supertokens-core
 
-echo "🏗️  Rebuilding application containers..."
-echo "🧱 Building backend... (logs: $LOG_DIR/backend-build.log)"
+echo "Rebuilding application containers..."
+echo "Building backend... (logs: $LOG_DIR/backend-build.log)"
 docker-compose -f docker-compose.dev.yml build --no-cache backend 2>&1 | tee "$LOG_DIR/backend-build.log"; CODE_BACKEND=${PIPESTATUS[0]}
-echo "🧱 Building frontend... (logs: $LOG_DIR/frontend-build.log)"
+echo "Building frontend... (logs: $LOG_DIR/frontend-build.log)"
 docker-compose -f docker-compose.dev.yml build --no-cache frontend 2>&1 | tee "$LOG_DIR/frontend-build.log"; CODE_FRONTEND=${PIPESTATUS[0]}
 
 if [ "$CODE_BACKEND" -ne 0 ] || [ "$CODE_FRONTEND" -ne 0 ]; then
-  echo "❌ Build failed. See logs in $LOG_DIR"
+  echo "Build failed. See logs in $LOG_DIR"
   exit 17
 fi
 
-echo "🚀 Starting application containers..."
+echo "Starting application containers..."
 docker-compose -f docker-compose.dev.yml up -d backend frontend supertokens-core
 
-echo "⏳ Waiting for services to start..."
+echo "Waiting for services to start..."
 sleep 15
 
-echo "📊 Checking service status..."
+echo "Checking service status..."
 docker-compose -f docker-compose.dev.yml ps
 
-echo "✅ Incremental deployment completed!"
+echo "Incremental deployment completed!"
 echo "Database passwords preserved - no data loss!"
 date > "$LOG_DIR/finished.txt"
-"@
+'@
 
 $deployScript | Out-File -FilePath "$DEPLOY_DIR/deploy-incremental-remote.sh" -Encoding ascii
 
