@@ -5,8 +5,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (fallback to install to avoid lockfile friction in CI)
+ENV npm_config_legacy_peer_deps=true
+RUN npm install --only=production --no-audit --no-fund
 
 # Copy application code
 COPY . .
