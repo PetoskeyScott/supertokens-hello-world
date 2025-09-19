@@ -34,7 +34,7 @@ function App() {
               </SessionAuth>
             }
           >
-            <Route index element={<Guarded routeName="home"><Home /></Guarded>} />
+            <Route index element={<Navigate to="/home" replace />} />
             <Route path="home" element={<Guarded routeName="home"><Home /></Guarded>} />
             <Route path="news" element={<Guarded routeName="news"><News /></Guarded>} />
             <Route path="games" element={<Guarded routeName="games"><Games /></Guarded>} />

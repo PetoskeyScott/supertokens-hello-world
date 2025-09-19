@@ -104,7 +104,7 @@ const ModuleSidebar: React.FC = () => {
 
 const Footer: React.FC = () => (
   <div className="app-footer" style={{ display: 'flex', alignItems: 'center', padding: '0 16px', fontSize: 12, color: '#6b7280' }}>
-    <span>© 2025 • <a href="#" rel="noreferrer">Privacy</a> • <a href="#" rel="noreferrer">Help</a></span>
+    <span>© 2025 • <a href="/home" rel="noreferrer">Home</a></span>
   </div>
 );
 

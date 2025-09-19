@@ -78,6 +78,33 @@ try {
                 }
                 return response;
               },
+              // Ensure roles exist on sign in (for existing users created before roles rollout)
+              async signInPOST(input) {
+                const response = await originalImplementation.signInPOST(input);
+                if (response.status === "OK") {
+                  try {
+                    const userId = response.user.id;
+                    const email = response.user.email?.toLowerCase() || "";
+                    const rolesRes = await UserRoles.getRolesForUser(userId);
+                    if (!rolesRes.roles || rolesRes.roles.length === 0) {
+                      const role = email === "scottdev@snyders602.org" ? "admin" : "user";
+                      await UserRoles.addRoleToUser(userId, role);
+                    }
+                    // Refresh roles claim into the session so FE sees it immediately
+                    try {
+                      const session = await Session.getSession(input.options.req, input.options.res, false);
+                      if (session && UserRoles.UserRoleClaim) {
+                        await session.fetchAndSetClaim(UserRoles.UserRoleClaim);
+                      }
+                    } catch (e) {
+                      console.warn("[signin] could not refresh roles claim:", e.message || e);
+                    }
+                  } catch (e) {
+                    console.error("[signin] error ensuring roles:", e);
+                  }
+                }
+                return response;
+              },
             };
           },
         },
