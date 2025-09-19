@@ -67,8 +67,8 @@ Write-Host "📝 Created environment file with existing passwords" -ForegroundCo
 # Create the deployment script for EC2
 $deployScript = @"
 #!/bin/bash
-set -u
-set -o pipefail
+set -Eeuo pipefail
+trap 'echo "❌ Remote script failed at line "+$LINENO; exit 17' ERR
 
 echo "🔄 Starting incremental deployment..."
 
@@ -77,6 +77,8 @@ cd /home/ubuntu/supertokens-hello-world
 
 LOG_DIR="/home/ubuntu/deploy-logs"
 mkdir -p "$LOG_DIR"
+echo "Log directory: $LOG_DIR"
+date > "$LOG_DIR/started.txt"
 
 echo "📥 Pulling latest code from GitHub..."
 git pull origin main
@@ -112,6 +114,7 @@ docker-compose -f docker-compose.dev.yml ps
 
 echo "✅ Incremental deployment completed!"
 echo "Database passwords preserved - no data loss!"
+date > "$LOG_DIR/finished.txt"
 "@
 
 $deployScript | Out-File -FilePath "$DEPLOY_DIR/deploy-incremental-remote.sh" -Encoding ascii
@@ -124,8 +127,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "SCP deploy-incremental-remote.sh failed with code $LASTEXITCODE" }
 
     Write-Host "🚀 Executing incremental deployment on EC2..." -ForegroundColor Yellow
-    ssh -i $KEY_PATH -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "dos2unix -q /home/ubuntu/deploy-incremental-remote.sh 2>/dev/null || sed -i 's/\r$//' /home/ubuntu/deploy-incremental-remote.sh; chmod +x /home/ubuntu/deploy-incremental-remote.sh; bash /home/ubuntu/deploy-incremental-remote.sh"
-    if ($LASTEXITCODE -ne 0) { throw "Remote execution failed with code $LASTEXITCODE" }
+    ssh -tt -i $KEY_PATH -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "dos2unix -q /home/ubuntu/deploy-incremental-remote.sh 2>/dev/null || sed -i 's/\r$//' /home/ubuntu/deploy-incremental-remote.sh; chmod +x /home/ubuntu/deploy-incremental-remote.sh; bash /home/ubuntu/deploy-incremental-remote.sh"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Remote execution failed. Attempting to fetch remote logs..." -ForegroundColor Red
+        ssh -i $KEY_PATH -o StrictHostKeyChecking=no "ubuntu@${EC2_PUBLIC_IP}" "ls -l /home/ubuntu/deploy-logs; tail -n 200 /home/ubuntu/deploy-logs/backend-build.log || true; tail -n 200 /home/ubuntu/deploy-logs/frontend-build.log || true" | Out-Host
+        throw "Remote execution failed with code $LASTEXITCODE"
+    }
 
     Write-Host ""
     Write-Host "✅ Incremental deployment completed successfully!" -ForegroundColor Green
