@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const supertokens = require("supertokens-node");
 const { middleware, errorHandler } = require("supertokens-node/framework/express");
 const Session = require("supertokens-node/recipe/session");
+const { verifySession } = require("supertokens-node/recipe/session/framework/express");
 const EmailPassword = require("supertokens-node/recipe/emailpassword");
 const UserRoles = require("supertokens-node/recipe/userroles");
 const { Pool } = require("pg");
@@ -148,6 +149,39 @@ try {
       await UserRoles.createNewRoleOrAddPermissions("user", []);
       await UserRoles.createNewRoleOrAddPermissions("games", []);
       console.log("Roles seeded: admin, user, games");
+
+      // Backfill user roles for existing users with no roles
+      async function backfillUserRoles() {
+        try {
+          console.log("[backfill] starting user roles backfill");
+          let token = undefined;
+          let processed = 0;
+          do {
+            const { users, nextPaginationToken } = await EmailPassword.listUsersByAccountInfo(
+              "ASC",
+              100,
+              token
+            );
+            token = nextPaginationToken;
+            for (const u of users) {
+              const rolesRes = await UserRoles.getRolesForUser(u.id);
+              if (!rolesRes.roles || rolesRes.roles.length === 0) {
+                const email = (u.email || "").toLowerCase();
+                const role = email === "scottdev@snyders602.org" ? "admin" : "user";
+                const r = await UserRoles.addRoleToUser(u.id, role);
+                console.log("[backfill] assigned", { userId: u.id, email, role, status: r.status });
+              }
+              processed += 1;
+            }
+          } while (token);
+          console.log(`[backfill] completed. users processed=${processed}`);
+        } catch (e) {
+          console.error("[backfill] failed", e);
+        }
+      }
+
+      // Kick off backfill (do not block startup)
+      backfillUserRoles();
     } catch (err) {
       console.error("Error seeding roles:", err);
     }
@@ -295,15 +329,17 @@ async function requireAdmin(req, res, next) {
 }
 
 // ----- Current user info -----
-app.get("/api/me", async (req, res) => {
+app.get("/api/me", verifySession(), async (req, res) => {
   try {
-    const session = await Session.getSession(req, res, false);
-    if (!session) return res.status(401).json({ error: "Unauthorized" });
-    const userId = session.getUserId();
+    const userId = req.session.getUserId();
+    if (!userId) {
+      console.error("/api/me missing userId in session");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     let email = null;
     let timeJoined = null;
     try {
-      // Attempt a generic fetch that works across recipes
       const user = await supertokens.getUser(userId);
       email = user?.email || null;
       timeJoined = user?.timeJoined || null;
@@ -314,12 +350,18 @@ app.get("/api/me", async (req, res) => {
         timeJoined = epUser?.timeJoined || null;
       } catch (_) {}
     }
-    const rolesRes = await UserRoles.getRolesForUser(userId);
-    res.json({ userId, email, timeJoined, roles: rolesRes.roles || [] });
+
+    let roles = [];
+    try {
+      const rolesRes = await UserRoles.getRolesForUser(userId);
+      roles = rolesRes.roles || [];
+    } catch (err) {
+      console.error("/api/me roles error", err?.message || err);
+    }
+    res.json({ userId, email, timeJoined, roles });
   } catch (e) {
     console.error("/api/me error", e);
-    // Return minimal payload to avoid FE breaking
-    res.json({ userId: null, email: null, timeJoined: null, roles: [] });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 });
 
