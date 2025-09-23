@@ -18,6 +18,7 @@ const WEBSITE_DOMAIN = process.env.WEBSITE_DOMAIN || process.env.FRONTEND_URL; /
 const SUPERTOKENS_CONNECTION_URI = process.env.SUPERTOKENS_CONNECTION_URI;     // e.g. http://supertokens-core:3567
 const SUPERTOKENS_API_KEY = process.env.SUPERTOKENS_API_KEY || undefined;
 const DATABASE_URL = process.env.DATABASE_URL;
+const ROLE_GRANT_SECRET = process.env.ROLE_GRANT_SECRET || undefined;
 
 ["API_DOMAIN", "WEBSITE_DOMAIN", "SUPERTOKENS_CONNECTION_URI"].forEach((k) => {
   if (!process.env[k]) console.warn(`[warn] ${k} is not set`);
@@ -61,7 +62,12 @@ try {
                   try {
                     const email = response.user.email.toLowerCase();
                     const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                    await UserRoles.addRoleToUser(response.user.id, role);
+                    const r = await UserRoles.addRoleToUser(response.user.id, role);
+                    if (r.status !== "OK") {
+                      console.error("[signup] addRoleToUser failed", r);
+                    } else {
+                      console.log("[signup] role assigned", { userId: response.user.id, role });
+                    }
 
                     // If a session exists, refresh roles claim immediately
                     try {
@@ -88,7 +94,12 @@ try {
                     const rolesRes = await UserRoles.getRolesForUser(userId);
                     if (!rolesRes.roles || rolesRes.roles.length === 0) {
                       const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                      await UserRoles.addRoleToUser(userId, role);
+                      const r = await UserRoles.addRoleToUser(userId, role);
+                      if (r.status !== "OK") {
+                        console.error("[signin] addRoleToUser failed", r);
+                      } else {
+                        console.log("[signin] role assigned", { userId, role });
+                      }
                     }
                     // Refresh roles claim into the session so FE sees it immediately
                     try {
@@ -236,13 +247,35 @@ app.post("/api/roles/seed-if-missing", async (_req, res) => {
     if (haveAll) {
       return res.json({ ok: true, seeded: false, roles: allRoles.roles });
     }
-    await UserRoles.createNewRoleOrAddPermissions("admin", []);
-    await UserRoles.createNewRoleOrAddPermissions("user", []);
-    await UserRoles.createNewRoleOrAddPermissions("games", []);
+    const r1 = await UserRoles.createNewRoleOrAddPermissions("admin", []);
+    const r2 = await UserRoles.createNewRoleOrAddPermissions("user", []);
+    const r3 = await UserRoles.createNewRoleOrAddPermissions("games", []);
+    console.log("seed-if-missing results", r1, r2, r3);
     const after = await UserRoles.getAllRoles();
     return res.json({ ok: true, seeded: true, roles: after.roles });
   } catch (e) {
     console.error("/api/roles/seed-if-missing error", e);
+    return res.status(500).json({ ok: false });
+  }
+});
+
+// Temporary: Force grant role by email (guarded by ROLE_GRANT_SECRET)
+app.post("/api/roles/grant", express.json(), async (req, res) => {
+  try {
+    if (!ROLE_GRANT_SECRET || req.headers["x-role-grant-secret"] !== ROLE_GRANT_SECRET) {
+      return res.status(403).json({ ok: false });
+    }
+    const { email, role } = req.body || {};
+    if (!email || !role || !["admin", "user", "games"].includes(role)) {
+      return res.status(400).json({ ok: false });
+    }
+    const users = await EmailPassword.listUsersByAccountInfo("ASC", 100);
+    const user = users.find((u) => (u.email || "").toLowerCase() === email.toLowerCase());
+    if (!user) return res.status(404).json({ ok: false });
+    const out = await UserRoles.addRoleToUser(user.id, role);
+    return res.json({ ok: out.status === "OK" });
+  } catch (e) {
+    console.error("/api/roles/grant error", e);
     return res.status(500).json({ ok: false });
   }
 });
