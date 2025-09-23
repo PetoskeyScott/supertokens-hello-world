@@ -227,6 +227,26 @@ async function initDatabase() {
 // ---------- Routes ----------
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
+// Seed roles if missing (no auth). Safe: only seeds when roles are absent.
+app.post("/api/roles/seed-if-missing", async (_req, res) => {
+  try {
+    const allRoles = await UserRoles.getAllRoles();
+    const wanted = new Set(["admin", "user", "games"]);
+    const haveAll = ["admin", "user", "games"].every((r) => allRoles.roles?.includes(r));
+    if (haveAll) {
+      return res.json({ ok: true, seeded: false, roles: allRoles.roles });
+    }
+    await UserRoles.createNewRoleOrAddPermissions("admin", []);
+    await UserRoles.createNewRoleOrAddPermissions("user", []);
+    await UserRoles.createNewRoleOrAddPermissions("games", []);
+    const after = await UserRoles.getAllRoles();
+    return res.json({ ok: true, seeded: true, roles: after.roles });
+  } catch (e) {
+    console.error("/api/roles/seed-if-missing error", e);
+    return res.status(500).json({ ok: false });
+  }
+});
+
 // ----- Helper: admin guard -----
 async function requireAdmin(req, res, next) {
   try {
