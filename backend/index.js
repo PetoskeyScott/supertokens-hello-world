@@ -341,16 +341,19 @@ app.get("/api/me", verifySession(), async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // In this app, all users are EmailPassword users
+    // Fetch user from SuperTokens and extract email from emailpassword login method
     let email = null;
     let timeJoined = null;
     try {
-      const epUser = await EmailPassword.getUserById(userId);
-      console.log("DEBUG: /api/me EmailPassword.getUserById", { userId, email: epUser?.email, timeJoined: epUser?.timeJoined });
-      email = epUser?.email || null;
-      timeJoined = epUser?.timeJoined || null;
+      const stUser = await supertokens.getUser(userId);
+      timeJoined = stUser?.timeJoined ?? null;
+      if (stUser?.loginMethods && Array.isArray(stUser.loginMethods)) {
+        const ep = stUser.loginMethods.find((m) => m.recipeId === "emailpassword");
+        email = ep?.email || null;
+      }
+      console.log("DEBUG: /api/me getUser", { userId, email, timeJoined });
     } catch (e) {
-      console.error("DEBUG: /api/me EmailPassword.getUserById failed", e?.message || e);
+      console.error("DEBUG: /api/me getUser failed", e?.message || e);
     }
 
     let roles = [];
