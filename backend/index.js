@@ -65,9 +65,9 @@ try {
                     const role = email === "scottdev@snyders602.org" ? "admin" : "user";
                     const r = await UserRoles.addRoleToUser(response.user.id, role);
                     if (r.status !== "OK") {
-                      console.error("[signup] addRoleToUser failed", r);
+                      console.error("DEBUG: [signup] addRoleToUser failed", { userId: response.user.id, role, r });
                     } else {
-                      console.log("[signup] role assigned", { userId: response.user.id, role });
+                      console.log("DEBUG: [signup] role assigned", { userId: response.user.id, role, status: r.status });
                     }
 
                     // If a session exists, refresh roles claim immediately
@@ -75,12 +75,13 @@ try {
                       const session = await Session.getSession(input.options.req, input.options.res, false);
                       if (session && UserRoles.UserRoleClaim) {
                         await session.fetchAndSetClaim(UserRoles.UserRoleClaim);
+                        console.log("DEBUG: [signup] refreshed roles claim for session", { userId: response.user.id });
                       }
                     } catch (e) {
-                      console.warn("[signup] could not refresh roles claim:", e.message || e);
+                      console.warn("DEBUG: [signup] could not refresh roles claim", e?.message || e);
                     }
                   } catch (e) {
-                    console.error("[signup] error assigning role:", e);
+                    console.error("DEBUG: [signup] error assigning role", e);
                   }
                 }
                 return response;
@@ -92,14 +93,16 @@ try {
                   try {
                     const userId = response.user.id;
                     const email = response.user.email?.toLowerCase() || "";
+                    console.log("DEBUG: [signin] getRolesForUser starting", { userId, email });
                     const rolesRes = await UserRoles.getRolesForUser(userId);
+                    console.log("DEBUG: [signin] getRolesForUser result", { userId, roles: rolesRes.roles });
                     if (!rolesRes.roles || rolesRes.roles.length === 0) {
                       const role = email === "scottdev@snyders602.org" ? "admin" : "user";
                       const r = await UserRoles.addRoleToUser(userId, role);
                       if (r.status !== "OK") {
-                        console.error("[signin] addRoleToUser failed", r);
+                        console.error("DEBUG: [signin] addRoleToUser failed", { userId, role, r });
                       } else {
-                        console.log("[signin] role assigned", { userId, role });
+                        console.log("DEBUG: [signin] role assigned", { userId, role, status: r.status });
                       }
                     }
                     // Refresh roles claim into the session so FE sees it immediately
@@ -107,12 +110,13 @@ try {
                       const session = await Session.getSession(input.options.req, input.options.res, false);
                       if (session && UserRoles.UserRoleClaim) {
                         await session.fetchAndSetClaim(UserRoles.UserRoleClaim);
+                        console.log("DEBUG: [signin] refreshed roles claim for session", { userId });
                       }
                     } catch (e) {
-                      console.warn("[signin] could not refresh roles claim:", e.message || e);
+                      console.warn("DEBUG: [signin] could not refresh roles claim", e?.message || e);
                     }
                   } catch (e) {
-                    console.error("[signin] error ensuring roles:", e);
+                    console.error("DEBUG: [signin] error ensuring roles", e);
                   }
                 }
                 return response;
@@ -342,16 +346,21 @@ app.get("/api/me", verifySession(), async (req, res) => {
     let timeJoined = null;
     try {
       const epUser = await EmailPassword.getUserById(userId);
+      console.log("DEBUG: /api/me EmailPassword.getUserById", { userId, email: epUser?.email, timeJoined: epUser?.timeJoined });
       email = epUser?.email || null;
       timeJoined = epUser?.timeJoined || null;
-    } catch (_) {}
+    } catch (e) {
+      console.error("DEBUG: /api/me EmailPassword.getUserById failed", e?.message || e);
+    }
 
     let roles = [];
     try {
+      console.log("DEBUG: /api/me getRolesForUser starting", { userId });
       const rolesRes = await UserRoles.getRolesForUser(userId);
       roles = rolesRes.roles || [];
+      console.log("DEBUG: /api/me getRolesForUser result", { userId, roles });
     } catch (err) {
-      console.error("/api/me roles error", err?.message || err);
+      console.error("DEBUG: /api/me getRolesForUser failed", err?.message || err);
     }
     res.json({ userId, email, timeJoined, roles });
   } catch (e) {
