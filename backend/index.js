@@ -337,19 +337,14 @@ app.get("/api/me", verifySession(), async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
+    // In this app, all users are EmailPassword users
     let email = null;
     let timeJoined = null;
     try {
-      const user = await supertokens.getUser(userId);
-      email = user?.email || null;
-      timeJoined = user?.timeJoined || null;
-    } catch (_) {
-      try {
-        const epUser = await EmailPassword.getUserById(userId);
-        email = epUser?.email || null;
-        timeJoined = epUser?.timeJoined || null;
-      } catch (_) {}
-    }
+      const epUser = await EmailPassword.getUserById(userId);
+      email = epUser?.email || null;
+      timeJoined = epUser?.timeJoined || null;
+    } catch (_) {}
 
     let roles = [];
     try {
