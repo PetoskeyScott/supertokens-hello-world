@@ -63,7 +63,7 @@ try {
                   try {
                     const email = response.user.email.toLowerCase();
                     const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                    const r = await UserRoles.addRoleToUser(response.user.id, role);
+                    const r = await UserRoles.addRoleToUser(response.user.id, role, { tenantId: "public" });
                     if (r.status !== "OK") {
                       console.error("DEBUG: [signup] addRoleToUser failed", { userId: response.user.id, role, r });
                     } else {
@@ -94,11 +94,11 @@ try {
                     const userId = response.user.id;
                     const email = response.user.email?.toLowerCase() || "";
                     console.log("DEBUG: [signin] getRolesForUser starting", { userId, email });
-                    const rolesRes = await UserRoles.getRolesForUser(userId);
+                    const rolesRes = await UserRoles.getRolesForUser(userId, { tenantId: "public" });
                     console.log("DEBUG: [signin] getRolesForUser result", { userId, roles: rolesRes.roles });
                     if (!rolesRes.roles || rolesRes.roles.length === 0) {
                       const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                      const r = await UserRoles.addRoleToUser(userId, role);
+                      const r = await UserRoles.addRoleToUser(userId, role, { tenantId: "public" });
                       if (r.status !== "OK") {
                         console.error("DEBUG: [signin] addRoleToUser failed", { userId, role, r });
                       } else {
@@ -359,7 +359,7 @@ app.get("/api/me", verifySession(), async (req, res) => {
     let roles = [];
     try {
       console.log("DEBUG: /api/me getRolesForUser starting", { userId });
-      const rolesRes = await UserRoles.getRolesForUser(userId);
+      const rolesRes = await UserRoles.getRolesForUser(userId, { tenantId: "public" });
       roles = rolesRes.roles || [];
       console.log("DEBUG: /api/me getRolesForUser result", { userId, roles });
     } catch (err) {
