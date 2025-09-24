@@ -94,7 +94,7 @@ try {
                     const userId = response.user.id;
                     const email = response.user.email?.toLowerCase() || "";
                     console.log("DEBUG: [signin] getRolesForUser starting", { userId, email });
-                    const rolesRes = await UserRoles.getRolesForUser(userId, { tenantId: "public" });
+                    const rolesRes = await UserRoles.getRolesForUser(userId, "public");
                     console.log("DEBUG: [signin] getRolesForUser result", { userId, roles: rolesRes.roles });
                     if (!rolesRes.roles || rolesRes.roles.length === 0) {
                       const role = email === "scottdev@snyders602.org" ? "admin" : "user";
