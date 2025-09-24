@@ -10,7 +10,7 @@ function useRoles(): string[] {
     (async () => {
       try {
         const payload: any = await Session.getAccessTokenPayloadSecurely();
-        const claim = payload?.st?.ur; // user roles claim path used by SuperTokens
+        const claim = payload?.["st-ur"]; // user roles claim path used by SuperTokens
         if (Array.isArray(claim)) {
           setRoles(claim as string[]);
         } else {
@@ -41,10 +41,13 @@ const TopNav: React.FC<{ roles: string[] }> = ({ roles }) => {
     { to: '/settings', label: 'Settings' },
     { to: '/admin', label: 'Admin' },
   ];
+  const visibleNav = (roles.includes('admin')
+    ? navItems
+    : navItems.filter(n => n.label !== 'Admin'));
   return (
     <div className="app-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
       <div className="stack-row" style={{ gap: 8 }}>
-        {(roles.length ? navItems.filter(n => canAccess(n.to.replace('/', ''), roles)) : navItems).map((n) => (
+        {visibleNav.map((n) => (
           <NavLink key={n.to} to={n.to} end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>{n.label}</NavLink>
         ))}
       </div>
