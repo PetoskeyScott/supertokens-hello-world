@@ -328,7 +328,8 @@ async function requireAdmin(req, res, next) {
     const session = await Session.getSession(req, res, false);
     if (!session) return res.status(401).json({ error: "Unauthorized" });
     const userId = session.getUserId();
-    const isAdmin = await UserRoles.doesUserHaveRole("public", userId, "admin");
+    const rolesRes = await UserRoles.getRolesForUser("public", userId);
+    const isAdmin = Array.isArray(rolesRes.roles) && rolesRes.roles.includes("admin");
     if (!isAdmin) return res.status(403).json({ error: "Forbidden" });
     next();
   } catch (e) {
