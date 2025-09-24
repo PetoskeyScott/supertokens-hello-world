@@ -63,7 +63,7 @@ try {
                   try {
                     const email = response.user.email.toLowerCase();
                     const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                    const r = await UserRoles.addRoleToUser(response.user.id, role, { tenantId: "public" });
+                    const r = await UserRoles.addRoleToUser("public", response.user.id, role);
                     if (r.status !== "OK") {
                       console.error("DEBUG: [signup] addRoleToUser failed", { userId: response.user.id, role, r });
                     } else {
@@ -98,11 +98,11 @@ try {
                       ""
                     ).toLowerCase();
                     console.log("DEBUG: [signin] getRolesForUser starting", { userId, email });
-                    const rolesRes = await UserRoles.getRolesForUser(userId, "public");
+                    const rolesRes = await UserRoles.getRolesForUser("public", userId);
                     console.log("DEBUG: [signin] getRolesForUser result", { userId, roles: rolesRes.roles });
                     if (!rolesRes.roles || rolesRes.roles.length === 0) {
                       const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                      const r = await UserRoles.addRoleToUser(userId, role, "public");
+                      const r = await UserRoles.addRoleToUser("public", userId, role);
                       if (r.status !== "OK") {
                         console.error("DEBUG: [signin] addRoleToUser failed", { userId, role, r });
                       } else {
@@ -153,9 +153,9 @@ try {
   // Seed roles on boot (idempotent)
   (async () => {
     try {
-      await UserRoles.createNewRoleOrAddPermissions("admin", [], "public");
-      await UserRoles.createNewRoleOrAddPermissions("user", [], "public");
-      await UserRoles.createNewRoleOrAddPermissions("games", [], "public");
+      await UserRoles.createNewRoleOrAddPermissions("public", "admin", []);
+      await UserRoles.createNewRoleOrAddPermissions("public", "user", []);
+      await UserRoles.createNewRoleOrAddPermissions("public", "games", []);
       console.log("Roles seeded: admin, user, games");
 
       // Backfill user roles for existing users with no roles
@@ -172,11 +172,11 @@ try {
             );
             token = nextPaginationToken;
             for (const u of users) {
-              const rolesRes = await UserRoles.getRolesForUser(u.id, "public");
+              const rolesRes = await UserRoles.getRolesForUser("public", u.id);
               if (!rolesRes.roles || rolesRes.roles.length === 0) {
                 const email = (u.email || "").toLowerCase();
                 const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                const r = await UserRoles.addRoleToUser(u.id, role, "public");
+                const r = await UserRoles.addRoleToUser("public", u.id, role);
                 console.log("[backfill] assigned", { userId: u.id, email, role, status: r.status });
               }
               processed += 1;
@@ -289,9 +289,9 @@ app.post("/api/roles/seed-if-missing", async (_req, res) => {
     if (haveAll) {
       return res.json({ ok: true, seeded: false, roles: allRoles.roles });
     }
-    const r1 = await UserRoles.createNewRoleOrAddPermissions("admin", [], "public");
-    const r2 = await UserRoles.createNewRoleOrAddPermissions("user", [], "public");
-    const r3 = await UserRoles.createNewRoleOrAddPermissions("games", [], "public");
+    const r1 = await UserRoles.createNewRoleOrAddPermissions("public", "admin", []);
+    const r2 = await UserRoles.createNewRoleOrAddPermissions("public", "user", []);
+    const r3 = await UserRoles.createNewRoleOrAddPermissions("public", "games", []);
     console.log("seed-if-missing results", r1, r2, r3);
     const after = await UserRoles.getAllRoles("public");
     return res.json({ ok: true, seeded: true, roles: after.roles });
@@ -314,7 +314,7 @@ app.post("/api/roles/grant", express.json(), async (req, res) => {
     const users = await EmailPassword.listUsersByAccountInfo("ASC", 100);
     const user = users.find((u) => (u.email || "").toLowerCase() === email.toLowerCase());
     if (!user) return res.status(404).json({ ok: false });
-    const out = await UserRoles.addRoleToUser(user.id, role, "public");
+    const out = await UserRoles.addRoleToUser("public", user.id, role);
     return res.json({ ok: out.status === "OK" });
   } catch (e) {
     console.error("/api/roles/grant error", e);
@@ -328,7 +328,7 @@ async function requireAdmin(req, res, next) {
     const session = await Session.getSession(req, res, false);
     if (!session) return res.status(401).json({ error: "Unauthorized" });
     const userId = session.getUserId();
-    const isAdmin = await UserRoles.doesUserHaveRole(userId, "admin", "public");
+    const isAdmin = await UserRoles.doesUserHaveRole("public", userId, "admin");
     if (!isAdmin) return res.status(403).json({ error: "Forbidden" });
     next();
   } catch (e) {
@@ -363,7 +363,7 @@ app.get("/api/me", verifySession(), async (req, res) => {
     let roles = [];
     try {
       console.log("DEBUG: /api/me getRolesForUser starting", { userId });
-      const rolesRes = await UserRoles.getRolesForUser(userId, "public");
+      const rolesRes = await UserRoles.getRolesForUser("public", userId);
       roles = rolesRes.roles || [];
       console.log("DEBUG: /api/me getRolesForUser result", { userId, roles });
     } catch (err) {
@@ -388,7 +388,7 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 
     const data = await Promise.all(
       users.map(async (u) => {
-        const roles = (await UserRoles.getRolesForUser(u.id, "public")).roles;
+        const roles = (await UserRoles.getRolesForUser("public", u.id)).roles;
         return { userId: u.id, email: u.email, timeJoined: u.timeJoined, roles };
       })
     );
@@ -407,11 +407,11 @@ app.post("/api/admin/users/:userId/roles", requireAdmin, async (req, res) => {
     if (!role || !["admin", "user", "games"].includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
     }
-    await UserRoles.addRoleToUser(userId, role, "public");
+    await UserRoles.addRoleToUser("public", userId, role);
     // Ensure user has at least admin or user
-    const roles = (await UserRoles.getRolesForUser(userId, "public")).roles;
+    const roles = (await UserRoles.getRolesForUser("public", userId)).roles;
     if (!roles.includes("admin") && !roles.includes("user")) {
-      await UserRoles.addRoleToUser(userId, "user", "public");
+      await UserRoles.addRoleToUser("public", userId, "user");
     }
     res.json({ ok: true });
   } catch (e) {
@@ -427,12 +427,12 @@ app.delete("/api/admin/users/:userId/roles/:role", requireAdmin, async (req, res
     if (!role || !["admin", "user", "games"].includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
     }
-    await UserRoles.removeUserRole(userId, role, "public");
+    await UserRoles.removeUserRole("public", userId, role);
     // Enforce must have admin or user
-    const roles = (await UserRoles.getRolesForUser(userId, "public")).roles;
+    const roles = (await UserRoles.getRolesForUser("public", userId)).roles;
     if (!roles.includes("admin") && !roles.includes("user")) {
       // Revert by adding user
-      await UserRoles.addRoleToUser(userId, "user", "public");
+      await UserRoles.addRoleToUser("public", userId, "user");
     }
     res.json({ ok: true });
   } catch (e) {
