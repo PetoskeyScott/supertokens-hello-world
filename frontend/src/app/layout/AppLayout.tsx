@@ -10,12 +10,21 @@ function useRoles(): string[] {
     (async () => {
       try {
         const payload: any = await Session.getAccessTokenPayloadSecurely();
-        const claim = payload?.["st-ur"]; // user roles claim path used by SuperTokens
+        const claim = payload?.["st-ur"]; // correct claim key
         if (Array.isArray(claim)) {
           setRoles(claim as string[]);
-        } else {
-          setRoles([]);
+          return;
         }
+        // fallback to /api/me
+        const res = await fetch('/api/me', { credentials: 'include' });
+        if (res.ok) {
+          const j = await res.json();
+          if (Array.isArray(j.roles)) {
+            setRoles(j.roles as string[]);
+            return;
+          }
+        }
+        setRoles([]);
       } catch {
         setRoles([]);
       }
@@ -41,9 +50,7 @@ const TopNav: React.FC<{ roles: string[] }> = ({ roles }) => {
     { to: '/settings', label: 'Settings' },
     { to: '/admin', label: 'Admin' },
   ];
-  const visibleNav = (roles.includes('admin')
-    ? navItems
-    : navItems.filter(n => n.label !== 'Admin'));
+  const visibleNav = roles.includes('admin') ? navItems : navItems.filter(n => n.label !== 'Admin');
   return (
     <div className="app-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
       <div className="stack-row" style={{ gap: 8 }}>
