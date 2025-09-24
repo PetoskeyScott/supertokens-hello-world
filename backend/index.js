@@ -149,9 +149,9 @@ try {
   // Seed roles on boot (idempotent)
   (async () => {
     try {
-      await UserRoles.createNewRoleOrAddPermissions("admin", [], { tenantId: "public", appId: "public" });
-      await UserRoles.createNewRoleOrAddPermissions("user", [], { tenantId: "public", appId: "public" });
-      await UserRoles.createNewRoleOrAddPermissions("games", [], { tenantId: "public", appId: "public" });
+      await UserRoles.createNewRoleOrAddPermissions("admin", [], "public");
+      await UserRoles.createNewRoleOrAddPermissions("user", [], "public");
+      await UserRoles.createNewRoleOrAddPermissions("games", [], "public");
       console.log("Roles seeded: admin, user, games");
 
       // Backfill user roles for existing users with no roles
@@ -168,11 +168,11 @@ try {
             );
             token = nextPaginationToken;
             for (const u of users) {
-              const rolesRes = await UserRoles.getRolesForUser(u.id, { tenantId: "public", appId: "public" });
+              const rolesRes = await UserRoles.getRolesForUser(u.id, "public");
               if (!rolesRes.roles || rolesRes.roles.length === 0) {
                 const email = (u.email || "").toLowerCase();
                 const role = email === "scottdev@snyders602.org" ? "admin" : "user";
-                const r = await UserRoles.addRoleToUser(u.id, role, { tenantId: "public", appId: "public" });
+                const r = await UserRoles.addRoleToUser(u.id, role, "public");
                 console.log("[backfill] assigned", { userId: u.id, email, role, status: r.status });
               }
               processed += 1;
@@ -279,17 +279,17 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 // Seed roles if missing (no auth). Safe: only seeds when roles are absent.
 app.post("/api/roles/seed-if-missing", async (_req, res) => {
   try {
-    const allRoles = await UserRoles.getAllRoles({ tenantId: "public", appId: "public" });
+    const allRoles = await UserRoles.getAllRoles("public");
     const wanted = new Set(["admin", "user", "games"]);
     const haveAll = ["admin", "user", "games"].every((r) => allRoles.roles?.includes(r));
     if (haveAll) {
       return res.json({ ok: true, seeded: false, roles: allRoles.roles });
     }
-    const r1 = await UserRoles.createNewRoleOrAddPermissions("admin", [], { tenantId: "public", appId: "public" });
-    const r2 = await UserRoles.createNewRoleOrAddPermissions("user", [], { tenantId: "public", appId: "public" });
-    const r3 = await UserRoles.createNewRoleOrAddPermissions("games", [], { tenantId: "public", appId: "public" });
+    const r1 = await UserRoles.createNewRoleOrAddPermissions("admin", [], "public");
+    const r2 = await UserRoles.createNewRoleOrAddPermissions("user", [], "public");
+    const r3 = await UserRoles.createNewRoleOrAddPermissions("games", [], "public");
     console.log("seed-if-missing results", r1, r2, r3);
-    const after = await UserRoles.getAllRoles({ tenantId: "public", appId: "public" });
+    const after = await UserRoles.getAllRoles("public");
     return res.json({ ok: true, seeded: true, roles: after.roles });
   } catch (e) {
     console.error("/api/roles/seed-if-missing error", e);
@@ -310,7 +310,7 @@ app.post("/api/roles/grant", express.json(), async (req, res) => {
     const users = await EmailPassword.listUsersByAccountInfo("ASC", 100);
     const user = users.find((u) => (u.email || "").toLowerCase() === email.toLowerCase());
     if (!user) return res.status(404).json({ ok: false });
-    const out = await UserRoles.addRoleToUser(user.id, role, { tenantId: "public", appId: "public" });
+    const out = await UserRoles.addRoleToUser(user.id, role, "public");
     return res.json({ ok: out.status === "OK" });
   } catch (e) {
     console.error("/api/roles/grant error", e);
@@ -324,7 +324,7 @@ async function requireAdmin(req, res, next) {
     const session = await Session.getSession(req, res, false);
     if (!session) return res.status(401).json({ error: "Unauthorized" });
     const userId = session.getUserId();
-    const isAdmin = await UserRoles.doesUserHaveRole(userId, "admin", { tenantId: "public", appId: "public" });
+    const isAdmin = await UserRoles.doesUserHaveRole(userId, "admin", "public");
     if (!isAdmin) return res.status(403).json({ error: "Forbidden" });
     next();
   } catch (e) {
@@ -359,7 +359,7 @@ app.get("/api/me", verifySession(), async (req, res) => {
     let roles = [];
     try {
       console.log("DEBUG: /api/me getRolesForUser starting", { userId });
-      const rolesRes = await UserRoles.getRolesForUser(userId, { tenantId: "public", appId: "public" });
+      const rolesRes = await UserRoles.getRolesForUser(userId, "public");
       roles = rolesRes.roles || [];
       console.log("DEBUG: /api/me getRolesForUser result", { userId, roles });
     } catch (err) {
@@ -384,7 +384,7 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 
     const data = await Promise.all(
       users.map(async (u) => {
-        const roles = (await UserRoles.getRolesForUser(u.id, { tenantId: "public", appId: "public" })).roles;
+        const roles = (await UserRoles.getRolesForUser(u.id, "public")).roles;
         return { userId: u.id, email: u.email, timeJoined: u.timeJoined, roles };
       })
     );
@@ -403,11 +403,11 @@ app.post("/api/admin/users/:userId/roles", requireAdmin, async (req, res) => {
     if (!role || !["admin", "user", "games"].includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
     }
-    await UserRoles.addRoleToUser(userId, role, { tenantId: "public", appId: "public" });
+    await UserRoles.addRoleToUser(userId, role, "public");
     // Ensure user has at least admin or user
-    const roles = (await UserRoles.getRolesForUser(userId, { tenantId: "public", appId: "public" })).roles;
+    const roles = (await UserRoles.getRolesForUser(userId, "public")).roles;
     if (!roles.includes("admin") && !roles.includes("user")) {
-      await UserRoles.addRoleToUser(userId, "user", { tenantId: "public", appId: "public" });
+      await UserRoles.addRoleToUser(userId, "user", "public");
     }
     res.json({ ok: true });
   } catch (e) {
@@ -423,12 +423,12 @@ app.delete("/api/admin/users/:userId/roles/:role", requireAdmin, async (req, res
     if (!role || !["admin", "user", "games"].includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
     }
-    await UserRoles.removeUserRole(userId, role, { tenantId: "public", appId: "public" });
+    await UserRoles.removeUserRole(userId, role, "public");
     // Enforce must have admin or user
-    const roles = (await UserRoles.getRolesForUser(userId, { tenantId: "public", appId: "public" })).roles;
+    const roles = (await UserRoles.getRolesForUser(userId, "public")).roles;
     if (!roles.includes("admin") && !roles.includes("user")) {
       // Revert by adding user
-      await UserRoles.addRoleToUser(userId, "user", { tenantId: "public", appId: "public" });
+      await UserRoles.addRoleToUser(userId, "user", "public");
     }
     res.json({ ok: true });
   } catch (e) {
