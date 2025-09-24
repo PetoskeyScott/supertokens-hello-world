@@ -165,16 +165,14 @@ try {
           let token = undefined;
           let processed = 0;
           do {
-            const { users, nextPaginationToken } = await EmailPassword.listUsersByAccountInfo(
-              "ASC",
-              100,
-              token
-            );
-            token = nextPaginationToken;
+            const page = await supertokens.getUsersOldestFirst("public", token, 100);
+            const users = page.users || [];
+            token = page.nextPaginationToken;
             for (const u of users) {
               const rolesRes = await UserRoles.getRolesForUser("public", u.id);
               if (!rolesRes.roles || rolesRes.roles.length === 0) {
-                const email = (u.email || "").toLowerCase();
+                const lm = Array.isArray(u.loginMethods) ? u.loginMethods.find((m) => m.recipeId === "emailpassword") : undefined;
+                const email = (lm?.email || (Array.isArray(u.emails) ? u.emails[0] : "") || "").toLowerCase();
                 const role = email === "scottdev@snyders602.org" ? "admin" : "user";
                 const r = await UserRoles.addRoleToUser("public", u.id, role);
                 console.log("[backfill] assigned", { userId: u.id, email, role, status: r.status });
@@ -383,17 +381,18 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
   try {
     const limit = 50;
     const paginationToken = req.query.token || undefined;
-    const { users, nextPaginationToken } = await supertokens.getUserCount === undefined
-      ? await EmailPassword.listUsersByAccountInfo("ASC", limit, paginationToken)
-      : await EmailPassword.listUsersByAccountInfo("ASC", limit, paginationToken);
-
+    const page = await supertokens.getUsersOldestFirst("public", paginationToken, limit);
+    const users = page.users || [];
     const data = await Promise.all(
       users.map(async (u) => {
-        const roles = (await UserRoles.getRolesForUser("public", u.id)).roles;
-        return { userId: u.id, email: u.email, timeJoined: u.timeJoined, roles };
+        const lm = Array.isArray(u.loginMethods) ? u.loginMethods.find((m) => m.recipeId === "emailpassword") : undefined;
+        const email = lm?.email || (Array.isArray(u.emails) ? u.emails[0] : undefined) || null;
+        const rolesRes = await UserRoles.getRolesForUser("public", u.id);
+        const roles = rolesRes.roles || [];
+        return { userId: u.id, email, timeJoined: u.timeJoined, roles };
       })
     );
-    res.json({ users: data, nextToken: nextPaginationToken || null });
+    res.json({ users: data, nextToken: page.nextPaginationToken || null });
   } catch (e) {
     console.error("/api/admin/users error", e);
     res.status(500).json({ error: "Failed to list users" });
