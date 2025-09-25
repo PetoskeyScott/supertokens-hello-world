@@ -6,8 +6,9 @@ export function useCanAccess(route: 'home' | 'news' | 'games' | 'settings' | 'ad
   const isAdmin = roles.includes('admin');
   if (isAdmin) return { allowed: true, loading: false };
   if (route === 'admin') return { allowed: false, loading: false };
-  if (route === 'games') return { allowed: roles.includes('games') && roles.includes('user'), loading: false };
-  return { allowed: roles.includes('user'), loading: false };
+  if (route === 'games') return { allowed: roles.includes('games'), loading: false };
+  // home, news, settings
+  return { allowed: true, loading: false };
 }
 
 

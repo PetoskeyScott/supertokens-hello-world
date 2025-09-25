@@ -34,12 +34,12 @@ function useRoles(): string[] {
 }
 
 function canAccess(route: string, roles: string[]): boolean {
-  // Keep simple: admin full access. Otherwise rely on role presence as in useRouteGuard
   const isAdmin = roles.includes('admin');
   if (isAdmin) return true;
   if (route === 'admin') return false;
-  if (route === 'games') return roles.includes('games') && roles.includes('user');
-  return roles.includes('user');
+  if (route === 'games') return roles.includes('games');
+  // home, news, settings visible to all signed-in users
+  return true;
 }
 
 const TopNav: React.FC<{ roles: string[] }> = ({ roles }) => {
@@ -50,7 +50,12 @@ const TopNav: React.FC<{ roles: string[] }> = ({ roles }) => {
     { to: '/settings', label: 'Settings' },
     { to: '/admin', label: 'Admin' },
   ];
-  const visibleNav = roles.includes('admin') ? navItems : navItems.filter(n => n.label !== 'Admin');
+  // Visibility per requirements
+  const visibleNav = roles.includes('admin')
+    ? navItems
+    : roles.includes('games')
+      ? navItems.filter(n => n.label !== 'Admin')
+      : navItems.filter(n => !['Admin', 'Games'].includes(n.label));
   return (
     <div className="app-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
       <div className="stack-row" style={{ gap: 8 }}>

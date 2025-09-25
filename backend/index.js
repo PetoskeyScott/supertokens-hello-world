@@ -61,7 +61,14 @@ try {
                 const response = await originalImplementation.signUpPOST(input);
                 if (response.status === "OK") {
                   try {
-                    const email = response.user.email.toLowerCase();
+                    const email = (
+                      (Array.isArray(response.user.loginMethods)
+                        ? response.user.loginMethods.find((m) => m.recipeId === "emailpassword")
+                        : undefined)?.email ||
+                      (Array.isArray(response.user.emails) ? response.user.emails[0] : undefined) ||
+                      response.user.email ||
+                      ""
+                    ).toLowerCase();
                     const role = email === "scottdev@snyders602.org" ? "admin" : "user";
                     const r = await UserRoles.addRoleToUser("public", response.user.id, role);
                     if (r.status !== "OK") {
@@ -310,7 +317,13 @@ app.post("/api/roles/grant", express.json(), async (req, res) => {
       return res.status(400).json({ ok: false });
     }
     const users = await EmailPassword.listUsersByAccountInfo("ASC", 100);
-    const user = users.find((u) => (u.email || "").toLowerCase() === email.toLowerCase());
+    const user = users.find((u) => {
+      const ep = Array.isArray(u.loginMethods)
+        ? u.loginMethods.find((m) => m.recipeId === "emailpassword")
+        : undefined;
+      const ue = (ep?.email || (Array.isArray(u.emails) ? u.emails[0] : undefined) || u.email || "").toLowerCase();
+      return ue === email.toLowerCase();
+    });
     if (!user) return res.status(404).json({ ok: false });
     const out = await UserRoles.addRoleToUser("public", user.id, role);
     return res.json({ ok: out.status === "OK" });
